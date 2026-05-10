@@ -1,0 +1,1 @@
+{"name":"FinGoal Personal OS","short_name":"FinGoal","description":"Your Personal Finance Operating System","start_url":"./","display":"standalone","background_color":"#f8fafc","theme_color":"#4F46E5","lang":"en","scope":"./","icons":[{"src":"favicon.svg","sizes":"192x192 512x512","type":"image/svg+xml","purpose":"any maskable"}]}
