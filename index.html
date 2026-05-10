@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinGoal - Personal Finance Dashboard</title>
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4F46E5">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Navigation -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-chart-pie logo-icon"></i>
+                <h2>FinGoal</h2>
+            </div>
+            <nav class="menu">
+                <a href="#top" class="menu-item active"><i class="fa-solid fa-house"></i> Dashboard</a>
+                <a href="#accounts-section" class="menu-item"><i class="fa-solid fa-wallet"></i> Accounts</a>
+                <a href="#goals-section" class="menu-item"><i class="fa-solid fa-bullseye"></i> Goals</a>
+            </nav>
+            <div class="auth-section">
+                <div id="sync-status" class="status-indicator not-synced">
+                    <span class="dot"></span>
+                    <span class="status-text">Local Storage Only</span>
+                </div>
+                <button id="auth-btn" class="btn btn-outline">
+                    <i class="fa-brands fa-google"></i> Sign In to Sync
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header section -->
+            <header class="header">
+                <div class="header-titles">
+                    <h1>Financial Overview</h1>
+                    <p>Track your assets, liabilities, and goals in one place.</p>
+                </div>
+                <div class="net-worth-card gradient-card">
+                    <h3>Net Worth</h3>
+                    <h2 id="net-worth-display">₹0</h2>
+                    <div class="net-worth-details">
+                        <div class="detail">
+                            <span class="label">Assets</span>
+                            <span class="value success" id="total-assets-display">₹0</span>
+                        </div>
+                        <div class="detail">
+                            <span class="label">Liabilities</span>
+                            <span class="value danger" id="total-liabilities-display">₹0</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="dashboard-grid">
+                <!-- Data Input Column -->
+                <div class="column" id="accounts-section">
+                    <!-- Income & Expenses -->
+                    <section class="card">
+                        <div class="card-header">
+                            <h2><i class="fa-solid fa-money-bill-wave"></i> Cash Flow</h2>
+                        </div>
+                        <div class="input-group">
+                            <label>Monthly Income (₹)</label>
+                            <input type="number" id="monthly-income" placeholder="0" class="num-input">
+                        </div>
+                        <div class="input-group">
+                            <label>Monthly Expenses (₹)</label>
+                            <input type="number" id="monthly-expenses" placeholder="0" class="num-input">
+                        </div>
+                        <div class="input-group">
+                            <label>Monthly EMIs (₹)</label>
+                            <input type="number" id="monthly-emi" placeholder="0" class="num-input">
+                        </div>
+                        <div class="summary-row">
+                            <span>Monthly Surplus:</span>
+                            <strong id="monthly-surplus">₹0</strong>
+                        </div>
+                    </section>
+
+                    <!-- Assets -->
+                    <section class="card">
+                        <div class="card-header flex-between">
+                            <h2><i class="fa-solid fa-building-columns"></i> Assets</h2>
+                            <button class="icon-btn" onclick="openModal('asset-modal')"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div id="assets-list" class="item-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </section>
+
+                    <!-- Liabilities -->
+                    <section class="card">
+                        <div class="card-header flex-between">
+                            <h2><i class="fa-solid fa-credit-card"></i> Liabilities</h2>
+                            <button class="icon-btn" onclick="openModal('liability-modal')"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div id="liabilities-list" class="item-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Goals Column -->
+                <div class="column" id="goals-section">
+                    <section class="card goals-card">
+                        <div class="card-header flex-between">
+                            <h2><i class="fa-solid fa-flag-checkered"></i> Financial Goals</h2>
+                            <button class="btn btn-primary btn-sm" onclick="openModal('goal-modal')">Add Goal</button>
+                        </div>
+                        <div id="goals-list" class="goals-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </section>
+
+                    <!-- Insurance section -->
+                    <section class="card">
+                        <div class="card-header">
+                            <h2><i class="fa-solid fa-shield-halved"></i> Protection</h2>
+                        </div>
+                        <div class="protection-items">
+                            <div class="input-group">
+                                <label>Term Insurance Cover (₹)</label>
+                                <input type="number" id="term-insurance" placeholder="0" class="num-input">
+                            </div>
+                            <div class="input-group">
+                                <label>Health Insurance Cover (₹)</label>
+                                <input type="number" id="health-insurance" placeholder="0" class="num-input">
+                            </div>
+                            <div class="input-group">
+                                <label>Emergency Fund Target (₹)</label>
+                                <input type="number" id="emergency-fund-target" placeholder="0" class="num-input">
+                            </div>
+                            <div class="input-group">
+                                <label>Current Emergency Fund (₹)</label>
+                                <input type="number" id="emergency-fund-current" placeholder="0" class="num-input">
+                            </div>
+                            <!-- Emergency Fund Progress -->
+                            <div class="progress-container mt-3">
+                                <div class="progress-header">
+                                    <span>Emergency Fund</span>
+                                    <span id="emergency-fund-percent">0%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill warning" id="emergency-fund-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Asset Modal -->
+    <div id="asset-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add Asset</h3>
+                <button class="close-btn" onclick="closeModal('asset-modal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Asset Name</label>
+                    <input type="text" id="new-asset-name" placeholder="e.g., Mutual Funds, Real Estate">
+                </div>
+                <div class="input-group">
+                    <label>Current Value (₹)</label>
+                    <input type="number" id="new-asset-value" placeholder="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('asset-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addAsset()">Add Asset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Liability Modal -->
+    <div id="liability-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add Liability</h3>
+                <button class="close-btn" onclick="closeModal('liability-modal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Liability Name</label>
+                    <input type="text" id="new-liability-name" placeholder="e.g., Home Loan, Car Loan">
+                </div>
+                <div class="input-group">
+                    <label>Outstanding Amount (₹)</label>
+                    <input type="number" id="new-liability-value" placeholder="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('liability-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addLiability()">Add Liability</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Goal Modal -->
+    <div id="goal-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add Goal</h3>
+                <button class="close-btn" onclick="closeModal('goal-modal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Goal Name</label>
+                    <input type="text" id="new-goal-name" placeholder="e.g., Buying a House, Child Education">
+                </div>
+                <div class="input-group">
+                    <label>Target Amount (₹)</label>
+                    <input type="number" id="new-goal-target" placeholder="0">
+                </div>
+                <div class="input-group">
+                    <label>Current Saved (₹)</label>
+                    <input type="number" id="new-goal-saved" placeholder="0">
+                </div>
+                <div class="input-group">
+                    <label>Monthly Contribution (₹)</label>
+                    <input type="number" id="new-goal-contribution" placeholder="0">
+                </div>
+                <div class="input-group">
+                    <label>Expected ROI (% p.a.)</label>
+                    <input type="number" id="new-goal-roi" placeholder="12" value="12" step="0.1">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('goal-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addGoal()">Add Goal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Google Identity Services (added dynamically later if needed, or here) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+
+    <!-- App Scripts -->
+    <script src="app.js"></script>
+    <script src="gdrive_sync.js"></script>
+    <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker Registered'))
+            .catch(err => console.log('Service Worker Registration Failed', err));
+        }
+    </script>
+</body>
+</html>
