@@ -15,7 +15,8 @@ const initialState = {
   },
   settings: {
     openaiApiKey: ''
-  }
+  },
+  lastUpdated: 0
 };
 
 const AppStateContext = createContext();
@@ -35,40 +36,46 @@ export const AppStateProvider = ({ children }) => {
   }, [state]);
 
   const updateField = (field, value) => {
-    setState(prev => ({ ...prev, [field]: value }));
+    setState(prev => ({ ...prev, [field]: value, lastUpdated: Date.now() }));
   };
 
   const updateProtection = (field, value) => {
     setState(prev => ({
       ...prev,
-      protection: { ...prev.protection, [field]: value }
+      protection: { ...prev.protection, [field]: value },
+      lastUpdated: Date.now()
     }));
   };
 
   const addItem = (listName, item) => {
     setState(prev => ({
       ...prev,
-      [listName]: [...prev[listName], { ...item, id: crypto.randomUUID() }]
+      [listName]: [...prev[listName], { ...item, id: crypto.randomUUID() }],
+      lastUpdated: Date.now()
     }));
   };
 
   const removeItem = (listName, id) => {
     setState(prev => ({
       ...prev,
-      [listName]: prev[listName].filter(item => item.id !== id)
+      [listName]: prev[listName].filter(item => item.id !== id),
+      lastUpdated: Date.now()
     }));
   };
 
   const updateItem = (listName, id, updatedItem) => {
     setState(prev => ({
       ...prev,
-      [listName]: prev[listName].map(item => item.id === id ? { ...item, ...updatedItem } : item)
+      [listName]: prev[listName].map(item => item.id === id ? { ...item, ...updatedItem } : item),
+      lastUpdated: Date.now()
     }));
   };
 
   // Expose global state setter for GDrive sync
   useEffect(() => {
     window.updateAppStateFromDrive = (data) => {
+      // Merge setting so we don't accidentally wipe out lastUpdated if drive is older, 
+      // but the gdrive.js logic will only call this if drive is newer.
       setState(data);
     };
   }, []);

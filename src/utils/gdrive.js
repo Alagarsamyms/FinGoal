@@ -48,6 +48,20 @@ function maybeEnableButtons() {
     if (gapiInited && gisInited) {
         const btn = document.getElementById('auth-btn-react');
         if (btn) btn.onclick = handleAuthClick;
+
+        // Auto-restore token if valid
+        const storedTokenStr = localStorage.getItem('gdrive_token');
+        if (storedTokenStr) {
+            const storedToken = JSON.parse(storedTokenStr);
+            const age = Date.now() - storedToken.acquiredAt;
+            if (age < storedToken.expires_in * 1000) {
+                gapi.client.setToken(storedToken);
+                updateSyncStatusUI(true);
+                loadFromDrive(); // Sync background
+            } else {
+                localStorage.removeItem('gdrive_token'); // token expired
+            }
+        }
     }
 }
 
@@ -58,6 +72,13 @@ function handleAuthClick() {
             return;
         }
         gapi.client.setToken(resp);
+        
+        // Save to local storage for persistence
+        localStorage.setItem('gdrive_token', JSON.stringify({
+            ...resp,
+            acquiredAt: Date.now()
+        }));
+
         updateSyncStatusUI(true);
         await loadFromDrive();
     };
@@ -83,8 +104,27 @@ async function loadFromDrive() {
         if (foundFile) {
             fileId = foundFile.id;
             let fileResponse = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' });
-            if (window.updateAppStateFromDrive) {
-                window.updateAppStateFromDrive(fileResponse.result);
+            let driveData = fileResponse.result;
+            
+            // Conflict Resolution based on lastUpdated timestamp
+            let localDataStr = localStorage.getItem('fingoal_v2');
+            let localData = localDataStr ? JSON.parse(localDataStr) : null;
+            
+            const driveTime = driveData.lastUpdated || 0;
+            const localTime = localData ? (localData.lastUpdated || 0) : 0;
+
+            if (driveTime >= localTime) {
+                // Drive data is newer or identical, sync down
+                console.log("Drive data is newer. Downloading to local.");
+                if (window.updateAppStateFromDrive) {
+                    window.updateAppStateFromDrive(driveData);
+                }
+            } else {
+                // Local data is newer (user made changes while disconnected), sync up
+                console.log("Local data is newer. Uploading to Drive.");
+                if (window.syncToDrive) {
+                    window.syncToDrive(localData);
+                }
             }
         }
     } catch (err) {
@@ -130,7 +170,15 @@ function updateSyncStatusUI(isSynced) {
     
     if (isSynced) {
         statusDiv.innerHTML = '<div class="w-2 h-2 rounded-full bg-emerald-500"></div><span class="text-emerald-600">Synced to Drive</span>';
-        authBtn.innerHTML = '<span class="text-emerald-600 font-medium">Connected</span>';
-        authBtn.disabled = true;
+        
+        // Change button to Disconnect
+        authBtn.innerHTML = '<span class="text-emerald-600 font-medium">Disconnect</span>';
+        authBtn.onclick = () => {
+            gapi.client.setToken(null);
+            localStorage.removeItem('gdrive_token');
+            statusDiv.innerHTML = '<div class="w-2 h-2 rounded-full bg-amber-500"></div><span class="text-amber-600">Local Storage</span>';
+            authBtn.innerHTML = '<svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Sync Drive';
+            authBtn.onclick = handleAuthClick;
+        };
     }
 }
