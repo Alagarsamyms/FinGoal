@@ -1,13 +1,16 @@
-import { PieChart, Activity, Wallet, Target, Settings, ShieldCheck, Sparkles } from 'lucide-react';
+import { PieChart, Activity, Wallet, Target, Settings, ShieldCheck, Sparkles, X } from 'lucide-react';
 
-export default function Sidebar({ currentView, setCurrentView }) {
+export default function Sidebar({ currentView, setCurrentView, isMobileOpen, setIsMobileOpen }) {
   const navItem = (id, label, icon) => {
     const isActive = currentView === id;
     const baseClass = "flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors w-full text-left";
     const activeClass = isActive ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900";
     
     return (
-      <button onClick={() => setCurrentView(id)} className={`${baseClass} ${activeClass}`}>
+      <button onClick={() => {
+        setCurrentView(id);
+        if (setIsMobileOpen) setIsMobileOpen(false);
+      }} className={`${baseClass} ${activeClass}`}>
         {icon}
         {label}
       </button>
@@ -15,11 +18,25 @@ export default function Sidebar({ currentView, setCurrentView }) {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 fixed h-full flex flex-col p-6 z-10">
-      <div className="flex items-center gap-3 mb-10 text-indigo-600">
-        <PieChart size={28} />
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">FinGoal OS</h2>
-      </div>
+    <>
+      {/* Mobile Backdrop */}
+      {isMobileOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 z-30 md:hidden backdrop-blur-sm" 
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+      
+      <aside className={`w-64 bg-white border-r border-slate-200 fixed h-full flex flex-col p-6 z-40 transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+        <div className="flex items-center justify-between mb-10 text-indigo-600">
+          <div className="flex items-center gap-3">
+            <PieChart size={28} />
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">FinGoal OS</h2>
+          </div>
+          <button onClick={() => setIsMobileOpen(false)} className="md:hidden text-slate-400 hover:text-slate-600">
+            <X size={24} />
+          </button>
+        </div>
       
       <nav className="flex-1 space-y-2">
         {navItem('dashboard', 'Command Center', <Activity size={20} />)}
@@ -46,5 +63,6 @@ export default function Sidebar({ currentView, setCurrentView }) {
         </button>
       </div>
     </aside>
+    </>
   );
 }
