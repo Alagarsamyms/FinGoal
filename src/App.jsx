@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Menu, PieChart } from 'lucide-react';
 import { AppStateProvider } from './context/AppStateContext';
 import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
@@ -11,6 +12,7 @@ import { initializeGoogleDriveSync } from './utils/gdrive';
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     initializeGoogleDriveSync();
@@ -31,8 +33,26 @@ function App() {
   return (
     <AppStateProvider>
       <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans">
-        <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
-        <main className="flex-1 p-8 ml-64">
+        
+        {/* Mobile Header */}
+        <div className="md:hidden fixed top-0 w-full bg-white border-b border-slate-200 z-20 px-4 py-3 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2 text-indigo-600">
+             <PieChart size={24} /> 
+             <span className="font-bold text-lg tracking-tight">FinGoal OS</span>
+          </div>
+          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+            <Menu size={24} />
+          </button>
+        </div>
+
+        <Sidebar 
+          currentView={currentView} 
+          setCurrentView={setCurrentView}
+          isMobileOpen={isMobileMenuOpen}
+          setIsMobileOpen={setIsMobileMenuOpen}
+        />
+        
+        <main className="flex-1 p-4 md:p-8 ml-0 md:ml-64 mt-14 md:mt-0 max-w-[100vw] overflow-x-hidden">
           {renderView()}
         </main>
       </div>
