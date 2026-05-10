@@ -23,14 +23,14 @@ export default function WealthProjection() {
   let data = [];
   let currentYear = new Date().getFullYear();
   let accumulatedNW = currentNetWorth;
-  let annualSurplus = Math.max(0, surplus * 12);
+  let annualSurplus = surplus * 12; // Allow negative surplus to burn net worth
 
   for (let i = 0; i <= 15; i++) {
     data.push({
       year: currentYear + i,
       netWorth: Math.round(accumulatedNW)
     });
-    // Add annual growth
+    // Add annual growth and factor in surplus/deficit
     accumulatedNW = (accumulatedNW * (1 + blendedRoi)) + annualSurplus;
   }
 
@@ -51,8 +51,8 @@ export default function WealthProjection() {
           <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="colorNW" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
+                <stop offset="5%" stopColor={accumulatedNW >= currentNetWorth ? "#4F46E5" : "#E11D48"} stopOpacity={0.3}/>
+                <stop offset="95%" stopColor={accumulatedNW >= currentNetWorth ? "#4F46E5" : "#E11D48"} stopOpacity={0}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -63,7 +63,7 @@ export default function WealthProjection() {
               labelStyle={{ color: '#0f172a', fontWeight: 'bold' }}
               contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             />
-            <Area type="monotone" dataKey="netWorth" stroke="#4F46E5" strokeWidth={3} fillOpacity={1} fill="url(#colorNW)" />
+            <Area type="monotone" dataKey="netWorth" stroke={accumulatedNW >= currentNetWorth ? "#4F46E5" : "#E11D48"} strokeWidth={3} fillOpacity={1} fill="url(#colorNW)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
