@@ -1,5 +1,7 @@
 import React from 'react';
 import { useAppState } from '../context/AppStateContext';
+import { exportToExcel } from '../utils/exportExcel';
+import { Download, Database } from 'lucide-react';
 
 export default function Settings() {
   const { state, updateField } = useAppState();
@@ -36,6 +38,27 @@ export default function Settings() {
               />
               <p className="text-xs text-slate-400">Your key is synced securely to your Google Drive and never sent to any other server.</p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 flex-shrink-0">
+            <Database size={24} />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-slate-900">Data & Backups</h2>
+            <p className="text-sm text-slate-500 mt-1 mb-4">
+              Export your entire FinGoal OS state into a formatted Excel spreadsheet for offline analysis or safe keeping.
+            </p>
+            <button 
+              onClick={() => exportToExcel(state)}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
+            >
+              <Download size={18} />
+              Export to Excel (.xlsx)
+            </button>
           </div>
         </div>
       </div>

@@ -6,8 +6,11 @@ export default function AccountsAndDebt() {
   const { state, updateField, addItem, removeItem, updateItem } = useAppState();
 
   const [assetName, setAssetName] = useState('');
-  const [assetValue, setAssetValue] = useState('');
-  const [assetType, setAssetType] = useState('Equity');
+  const [assetInvested, setAssetInvested] = useState('');
+  const [assetCurrent, setAssetCurrent] = useState('');
+  const [assetSip, setAssetSip] = useState('');
+  const [assetRoi, setAssetRoi] = useState('');
+  const [assetType, setAssetType] = useState('Mutual Fund');
   const [editingAssetId, setEditingAssetId] = useState(null);
 
   const [liabName, setLiabName] = useState('');
@@ -17,20 +20,32 @@ export default function AccountsAndDebt() {
   const [editingLiabId, setEditingLiabId] = useState(null);
 
   const handleAddAsset = () => {
-    if (assetName && assetValue) {
+    if (assetName && assetCurrent) {
+      const newAsset = {
+        name: assetName,
+        type: assetType,
+        invested: parseFloat(assetInvested) || 0,
+        currentValue: parseFloat(assetCurrent) || 0,
+        sip: parseFloat(assetSip) || 0,
+        roi: parseFloat(assetRoi) || 0
+      };
+      
       if (editingAssetId) {
-        updateItem('assets', editingAssetId, { name: assetName, value: parseFloat(assetValue), type: assetType });
+        updateItem('assets', editingAssetId, newAsset);
         setEditingAssetId(null);
       } else {
-        addItem('assets', { name: assetName, value: parseFloat(assetValue), type: assetType });
+        addItem('assets', newAsset);
       }
-      setAssetName(''); setAssetValue('');
+      setAssetName(''); setAssetInvested(''); setAssetCurrent(''); setAssetSip(''); setAssetRoi('');
     }
   };
 
   const handleEditAsset = (asset) => {
     setAssetName(asset.name);
-    setAssetValue(asset.value);
+    setAssetInvested(asset.invested || '');
+    setAssetCurrent(asset.currentValue || asset.value || '');
+    setAssetSip(asset.sip || '');
+    setAssetRoi(asset.roi || '');
     setAssetType(asset.type);
     setEditingAssetId(asset.id);
   };
@@ -72,10 +87,10 @@ export default function AccountsAndDebt() {
         <p className="text-slate-500 mt-1">Manage your cash flow, assets, and liabilities.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="space-y-6">
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Cash Flow</h2>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Monthly Income (₹)</label>
               <input type="number" className="w-full border-slate-300 rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none" value={state.income || ''} onChange={e => updateField('income', parseFloat(e.target.value) || 0)} />
@@ -91,73 +106,89 @@ export default function AccountsAndDebt() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm md:col-span-2">
-          <h2 className="text-lg font-semibold mb-4">Assets Manager</h2>
-          <div className="flex gap-3 mb-6">
-            <input type="text" placeholder="Asset Name" className="flex-1 border p-2 rounded-lg" value={assetName} onChange={e => setAssetName(e.target.value)} />
-            <input type="number" placeholder="Value (₹)" className="w-32 border p-2 rounded-lg" value={assetValue} onChange={e => setAssetValue(e.target.value)} />
-            <select className="border p-2 rounded-lg" value={assetType} onChange={e => setAssetType(e.target.value)}>
-              <option>Equity</option>
-              <option>Debt</option>
-              <option>Real Estate</option>
-              <option>Gold</option>
-              <option>Cash</option>
-            </select>
-            <button onClick={handleAddAsset} className={`px-4 py-2 rounded-lg text-white ${editingAssetId ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
-              {editingAssetId ? <Check size={20} /> : <Plus size={20} />}
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h2 className="text-lg font-semibold mb-4">Liability & Debt Manager</h2>
+          <div className="flex flex-wrap gap-3 mb-6">
+            <input type="text" placeholder="Loan Name" className="flex-1 min-w-[200px] border p-2 rounded-lg" value={liabName} onChange={e => setLiabName(e.target.value)} />
+            <input type="number" placeholder="Outstanding (₹)" className="w-32 border p-2 rounded-lg" value={liabValue} onChange={e => setLiabValue(e.target.value)} />
+            <input type="number" placeholder="EMI (₹)" className="w-32 border p-2 rounded-lg" value={liabEmi} onChange={e => setLiabEmi(e.target.value)} />
+            <input type="number" placeholder="Rate (%)" className="w-24 border p-2 rounded-lg" value={liabRate} onChange={e => setLiabRate(e.target.value)} />
+            <button onClick={handleAddLiability} className={`px-4 py-2 rounded-lg text-white ${editingLiabId ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`}>
+              {editingLiabId ? <Check size={20} /> : <Plus size={20} />}
             </button>
           </div>
           <div className="space-y-2">
-            {state.assets.map(a => (
-              <div key={a.id} className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-lg">
+            {state.liabilities.map(l => (
+              <div key={l.id} className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-lg">
                 <div>
-                  <div className="font-medium">{a.name}</div>
-                  <div className="text-xs text-slate-500">{a.type}</div>
+                  <div className="font-medium">{l.name}</div>
+                  <div className="text-xs text-slate-500">Rate: {l.interest}% | EMI: ₹{l.emi.toLocaleString('en-IN')}</div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="font-semibold text-emerald-600">₹{a.value.toLocaleString('en-IN')}</span>
+                  <span className="font-semibold text-rose-600">₹{l.value.toLocaleString('en-IN')}</span>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => handleEditLiability(l)} className="text-slate-400 hover:text-indigo-600"><Edit2 size={16} /></button>
+                    <button onClick={() => removeItem('liabilities', l.id)} className="text-slate-400 hover:text-rose-500"><Trash2 size={16} /></button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {state.liabilities.length === 0 && <div className="text-sm text-slate-500 text-center py-4">No liabilities added.</div>}
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h2 className="text-lg font-semibold mb-4">Assets Manager</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <input type="text" placeholder="Asset Name" className="border p-2 rounded-lg col-span-2 md:col-span-1" value={assetName} onChange={e => setAssetName(e.target.value)} />
+            <select className="border p-2 rounded-lg col-span-2 md:col-span-1" value={assetType} onChange={e => setAssetType(e.target.value)}>
+              <option>Mutual Fund</option>
+              <option>Equity</option>
+              <option>Gold</option>
+              <option>Real Estate</option>
+              <option>Debt</option>
+              <option>Cash</option>
+            </select>
+            <input type="number" placeholder="Invested (₹)" className="border p-2 rounded-lg" value={assetInvested} onChange={e => setAssetInvested(e.target.value)} />
+            <input type="number" placeholder="Current Value (₹)" className="border p-2 rounded-lg" value={assetCurrent} onChange={e => setAssetCurrent(e.target.value)} />
+            <input type="number" placeholder="Monthly SIP (₹)" className="border p-2 rounded-lg" value={assetSip} onChange={e => setAssetSip(e.target.value)} />
+            <input type="number" placeholder="Exp. ROI (%)" className="border p-2 rounded-lg" value={assetRoi} onChange={e => setAssetRoi(e.target.value)} />
+            <button onClick={handleAddAsset} className={`px-4 py-2 col-span-2 rounded-lg text-white font-medium ${editingAssetId ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
+              {editingAssetId ? 'Update Asset' : 'Add Asset'}
+            </button>
+          </div>
+          <div className="space-y-2">
+            {state.assets.map(a => {
+              const val = a.currentValue || a.value || 0;
+              return (
+                <div key={a.id} className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                  <div>
+                    <div className="font-medium">{a.name}</div>
+                    <div className="text-xs text-slate-500 flex gap-3 mt-1">
+                      <span>Type: {a.type}</span>
+                      {a.sip > 0 && <span>SIP: ₹{a.sip.toLocaleString('en-IN')}</span>}
+                      {a.roi > 0 && <span>ROI: {a.roi}%</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <span className="font-bold text-emerald-600 block">₹{val.toLocaleString('en-IN')}</span>
+                      {a.invested > 0 && <span className="text-[10px] text-slate-400">Inv: ₹{a.invested.toLocaleString('en-IN')}</span>}
+                    </div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => handleEditAsset(a)} className="text-slate-400 hover:text-indigo-600"><Edit2 size={16} /></button>
                     <button onClick={() => removeItem('assets', a.id)} className="text-slate-400 hover:text-rose-500"><Trash2 size={16} /></button>
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
             {state.assets.length === 0 && <div className="text-sm text-slate-500 text-center py-4">No assets added.</div>}
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <h2 className="text-lg font-semibold mb-4">Liability & Debt Manager</h2>
-        <div className="flex flex-wrap gap-3 mb-6">
-          <input type="text" placeholder="Loan Name" className="flex-1 min-w-[200px] border p-2 rounded-lg" value={liabName} onChange={e => setLiabName(e.target.value)} />
-          <input type="number" placeholder="Outstanding (₹)" className="w-32 border p-2 rounded-lg" value={liabValue} onChange={e => setLiabValue(e.target.value)} />
-          <input type="number" placeholder="EMI (₹)" className="w-32 border p-2 rounded-lg" value={liabEmi} onChange={e => setLiabEmi(e.target.value)} />
-          <input type="number" placeholder="Rate (%)" className="w-24 border p-2 rounded-lg" value={liabRate} onChange={e => setLiabRate(e.target.value)} />
-          <button onClick={handleAddLiability} className={`px-4 py-2 rounded-lg text-white ${editingLiabId ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`}>
-            {editingLiabId ? <Check size={20} /> : <Plus size={20} />}
-          </button>
-        </div>
-        <div className="space-y-2">
-          {state.liabilities.map(l => (
-            <div key={l.id} className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-lg">
-              <div>
-                <div className="font-medium">{l.name}</div>
-                <div className="text-xs text-slate-500">Rate: {l.interest}% | EMI: ₹{l.emi.toLocaleString('en-IN')}</div>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="font-semibold text-rose-600">₹{l.value.toLocaleString('en-IN')}</span>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => handleEditLiability(l)} className="text-slate-400 hover:text-indigo-600"><Edit2 size={16} /></button>
-                  <button onClick={() => removeItem('liabilities', l.id)} className="text-slate-400 hover:text-rose-500"><Trash2 size={16} /></button>
-                </div>
-              </div>
-            </div>
-          ))}
-          {state.liabilities.length === 0 && <div className="text-sm text-slate-500 text-center py-4">No liabilities added.</div>}
-        </div>
-      </div>
+
     </div>
   );
 }
