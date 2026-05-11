@@ -1,4 +1,4 @@
-import { PieChart, Activity, Wallet, Target, Settings, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { PieChart, Activity, Wallet, Target, Flame, Settings, ShieldCheck, Sparkles, X } from 'lucide-react';
 
 export default function Sidebar({ currentView, setCurrentView, isMobileOpen, setIsMobileOpen }) {
   const navItem = (id, label, icon) => {
@@ -42,6 +42,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
         {navItem('dashboard', 'Command Center', <Activity size={20} />)}
         {navItem('accounts', 'Accounts & Debt', <Wallet size={20} />)}
         {navItem('goals', 'Goals Matrix', <Target size={20} />)}
+        {navItem('fire', 'FIRE Engine', <Flame size={20} />)}
         {navItem('protection', 'Protection', <ShieldCheck size={20} />)}
         {navItem('simulation', 'AI Simulator', <Sparkles size={20} />)}
         {navItem('settings', 'Settings', <Settings size={20} />)}

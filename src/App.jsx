@@ -7,6 +7,7 @@ import AccountsAndDebt from './components/AccountsAndDebt';
 import GoalTracker from './components/GoalTracker';
 import Protection from './components/Protection';
 import Simulation from './components/Simulation';
+import FireDashboard from './components/FireDashboard';
 import Settings from './components/Settings';
 import { initializeGoogleDriveSync } from './utils/gdrive';
 
@@ -23,6 +24,7 @@ function App() {
       case 'dashboard': return <Dashboard />;
       case 'accounts': return <AccountsAndDebt />;
       case 'goals': return <GoalTracker />;
+      case 'fire': return <FireDashboard />;
       case 'protection': return <Protection />;
       case 'simulation': return <Simulation />;
       case 'settings': return <Settings />;

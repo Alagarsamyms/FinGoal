@@ -18,7 +18,7 @@ export default function ExecutiveSummary() {
 
   const surplus = totalIncome - totalExpenses - totalEmi;
 
-  const totalAssets = state.assets.reduce((sum, a) => sum + (parseFloat(a.value) || 0), 0);
+  const totalAssets = state.assets.reduce((sum, a) => sum + (parseFloat(a.currentValue || a.value) || 0), 0);
   const totalDebt = state.liabilities.reduce((sum, l) => sum + (parseFloat(l.value) || 0), 0);
   const netWorth = totalAssets - totalDebt;
 
@@ -70,7 +70,6 @@ export default function ExecutiveSummary() {
         <MetricCard label="Monthly Income" value={formatCurrency(totalIncome)} icon={<Wallet size={20} />} color="text-emerald-600" />
         <MetricCard label="Monthly Expenses" value={formatCurrency(totalExpenses)} icon={<Receipt size={20} />} color="text-rose-500" />
         <MetricCard label="Total EMI" value={formatCurrency(totalEmi)} icon={<CreditCard size={20} />} color="text-amber-600" />
-        <MetricCard label="Investable Surplus" value={formatCurrency(surplus)} icon={<TrendingUp size={20} />} color="text-indigo-600" bg="bg-indigo-50" />
         
         <MetricCard label="Total Assets" value={formatCurrency(totalAssets)} icon={<Landmark size={20} />} />
         <MetricCard label="Total Debt" value={formatCurrency(totalDebt)} icon={<FileWarning size={20} />} color="text-rose-600" />
