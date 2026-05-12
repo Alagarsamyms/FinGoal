@@ -14,7 +14,8 @@ const initialState = {
     emergencyCurrent: 0
   },
   settings: {
-    openaiApiKey: ''
+    openaiApiKey: '',
+    theme: 'light'
   },
   lastUpdated: 0
 };
@@ -34,6 +35,14 @@ export const AppStateProvider = ({ children }) => {
       window.syncToDrive(state);
     }
   }, [state]);
+
+  useEffect(() => {
+    if (state.settings?.theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [state.settings?.theme]);
 
   const updateField = (field, value) => {
     setState(prev => ({ ...prev, [field]: value, lastUpdated: Date.now() }));

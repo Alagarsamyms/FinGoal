@@ -45,50 +45,50 @@ export default function ExecutiveSummary() {
   healthScore = Math.max(0, Math.min(100, healthScore)); // clamp
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Executive Summary</h1>
-          <p className="text-slate-500 mt-1">Your financial command center at a glance.</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Executive Summary</h1>
+          <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1">Your financial command center at a glance.</p>
         </div>
-        <div className="flex gap-4">
-          <div className="glass-panel px-6 py-4 rounded-xl flex flex-col items-center justify-center">
-            <span className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Health Score</span>
+        <div className="flex gap-3 md:gap-4 overflow-x-auto pb-2 md:pb-0">
+          <div className="glass-panel dark:bg-slate-800/80 dark:border-slate-700/50 px-4 md:px-6 py-3 md:py-4 rounded-xl flex flex-col items-center justify-center min-w-[120px]">
+            <span className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Health Score</span>
             <div className="flex items-baseline gap-1">
-              <span className={`text-3xl font-bold ${healthScore >= 80 ? 'text-emerald-500' : healthScore >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>{healthScore}</span>
-              <span className="text-slate-400 font-medium">/100</span>
+              <span className={`text-2xl md:text-3xl font-bold ${healthScore >= 80 ? 'text-emerald-500' : healthScore >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>{healthScore}</span>
+              <span className="text-slate-400 dark:text-slate-500 font-medium text-sm md:text-base">/100</span>
             </div>
           </div>
-          <div className="gradient-card px-8 py-4 rounded-xl flex flex-col justify-center">
-            <span className="text-sm font-medium text-indigo-100 uppercase tracking-wider mb-1">Net Worth</span>
-            <span className="text-3xl font-bold text-white">{formatCurrency(netWorth)}</span>
+          <div className="gradient-card px-6 md:px-8 py-3 md:py-4 rounded-xl flex flex-col justify-center min-w-[160px]">
+            <span className="text-xs md:text-sm font-medium text-indigo-100 uppercase tracking-wider mb-1">Net Worth</span>
+            <span className="text-2xl md:text-3xl font-bold text-white">{formatCurrency(netWorth)}</span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <MetricCard label="Monthly Income" value={formatCurrency(totalIncome)} icon={<Wallet size={20} />} color="text-emerald-600" />
         <MetricCard label="Monthly Expenses" value={formatCurrency(totalExpenses)} icon={<Receipt size={20} />} color="text-rose-500" />
         <MetricCard label="Total EMI" value={formatCurrency(totalEmi)} icon={<CreditCard size={20} />} color="text-amber-600" />
         
-        <MetricCard label="Total Assets" value={formatCurrency(totalAssets)} icon={<Landmark size={20} />} />
-        <MetricCard label="Total Debt" value={formatCurrency(totalDebt)} icon={<FileWarning size={20} />} color="text-rose-600" />
-        <MetricCard label="Debt-to-Income Ratio" value={`${dti.toFixed(1)}%`} icon={<Percent size={20} />} color={dti > 40 ? 'text-rose-600' : 'text-slate-900'} />
-        <MetricCard label="Emergency Fund" value={formatCurrency(emergencyCurrent)} icon={<ShieldAlert size={20} />} subtitle={`Target: ${formatCurrency(emergencyTarget)}`} />
+        <MetricCard label="Total Assets" value={formatCurrency(totalAssets)} icon={<Landmark size={18} />} color="text-slate-900 dark:text-white" />
+        <MetricCard label="Total Debt" value={formatCurrency(totalDebt)} icon={<FileWarning size={18} />} color="text-rose-600 dark:text-rose-500" />
+        <MetricCard label="Debt-to-Income" value={`${dti.toFixed(1)}%`} icon={<Percent size={18} />} color={dti > 40 ? 'text-rose-600 dark:text-rose-500' : 'text-slate-900 dark:text-white'} />
+        <MetricCard label="Emergency Fund" value={formatCurrency(emergencyCurrent)} icon={<ShieldAlert size={18} />} subtitle={`Target: ${formatCurrency(emergencyTarget)}`} color="text-slate-900 dark:text-white" />
       </div>
     </div>
   );
 }
 
-function MetricCard({ label, value, icon, color = "text-slate-900", bg = "bg-white", subtitle }) {
+function MetricCard({ label, value, icon, color = "text-slate-900 dark:text-white", bg = "bg-white dark:bg-slate-800", subtitle }) {
   return (
-    <div className={`${bg} border border-slate-200 rounded-xl p-5 shadow-sm relative overflow-hidden`}>
-      <div className="flex justify-between items-start mb-2">
-        <h3 className="text-sm font-medium text-slate-500">{label}</h3>
+    <div className={`${bg} border border-slate-200 dark:border-slate-700 rounded-xl p-4 sm:p-5 shadow-sm relative overflow-hidden transition-colors`}>
+      <div className="flex justify-between items-start mb-1 sm:mb-2">
+        <h3 className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 truncate pr-2">{label}</h3>
         {icon && <div className={`opacity-50 ${color}`}>{icon}</div>}
       </div>
-      <div className={`text-2xl font-bold ${color}`}>{value}</div>
-      {subtitle && <div className="text-xs text-slate-400 mt-1 font-medium">{subtitle}</div>}
+      <div className={`text-lg sm:text-2xl font-bold ${color}`}>{value}</div>
+      {subtitle && <div className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 mt-1 font-medium truncate">{subtitle}</div>}
     </div>
   );
 }

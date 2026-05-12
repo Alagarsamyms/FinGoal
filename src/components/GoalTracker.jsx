@@ -128,41 +128,41 @@ export default function GoalTracker() {
   };
 
   return (
-    <div className="space-y-8 pb-20 max-w-7xl mx-auto">
+    <div className="space-y-6 md:space-y-8 pb-20 max-w-7xl mx-auto transition-colors">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Goals Matrix</h1>
-        <p className="text-slate-500 mt-1">Plan, project, and achieve your financial milestones using your active assets.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Goals Matrix</h1>
+        <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1">Plan, project, and achieve your financial milestones using your active assets.</p>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">{editingGoalId ? 'Edit Goal' : 'Add New Goal'}</h2>
-          {editingGoalId && <button onClick={resetForm} className="text-sm text-indigo-600 hover:text-indigo-800">Cancel Edit</button>}
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{editingGoalId ? 'Edit Goal' : 'Add New Goal'}</h2>
+          {editingGoalId && <button onClick={resetForm} className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300">Cancel Edit</button>}
         </div>
         
-        <div className="flex flex-wrap gap-4 items-end mb-6">
+        <div className="flex flex-wrap gap-3 sm:gap-4 items-end mb-6">
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs font-medium text-slate-500 mb-1">Goal Name</label>
-            <input type="text" className="w-full border p-2 rounded-lg" value={name} onChange={e => setName(e.target.value)} />
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Goal Name</label>
+            <input type="text" className="w-full border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white p-2 rounded-lg" value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div className="w-32">
-            <label className="block text-xs font-medium text-slate-500 mb-1">Target (₹)</label>
-            <input type="number" className="w-full border p-2 rounded-lg" value={target} onChange={e => setTarget(e.target.value)} />
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Target (₹)</label>
+            <input type="number" className="w-full border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white p-2 rounded-lg" value={target} onChange={e => setTarget(e.target.value)} />
           </div>
           <div className="w-40">
-            <label className="block text-xs font-medium text-slate-500 mb-1">Target Date</label>
-            <input type="month" className="w-full border p-2 rounded-lg text-sm" value={targetDate} onChange={e => setTargetDate(e.target.value)} />
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Target Date</label>
+            <input type="month" className="w-full border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white p-2 rounded-lg text-sm" value={targetDate} onChange={e => setTargetDate(e.target.value)} />
           </div>
         </div>
 
         {/* Asset Linking Section */}
-        <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 mb-6">
+        <div className="bg-slate-50 dark:bg-slate-700/50 p-3 sm:p-4 rounded-lg border border-slate-100 dark:border-slate-600 mb-6">
           <div className="flex items-center gap-2 mb-3">
-            <LinkIcon size={16} className="text-indigo-500" />
-            <h3 className="text-sm font-semibold text-slate-800">Link Assets to this Goal</h3>
+            <LinkIcon size={16} className="text-indigo-500 dark:text-indigo-400" />
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Link Assets to this Goal</h3>
           </div>
           {state.assets.length === 0 ? (
-            <p className="text-xs text-slate-500">No assets available. Add assets in Accounts & Debt.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">No assets available. Add assets in Accounts & Debt.</p>
           ) : (
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
               {state.assets.map(a => {
@@ -171,32 +171,40 @@ export default function GoalTracker() {
                 const isDisabled = !isLinked && available <= 0;
 
                 return (
-                  <div key={a.id} className={`flex items-center gap-3 bg-white p-2 rounded border border-slate-200 transition-opacity ${isDisabled ? 'opacity-50 grayscale' : ''}`}>
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 text-indigo-600 rounded" 
-                      checked={!!isLinked} 
-                      disabled={isDisabled}
-                      onChange={() => handleToggleAsset(a.id)} 
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium flex items-center justify-between">
+                  <div key={a.id} className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-white dark:bg-slate-800 p-2 sm:p-3 rounded border border-slate-200 dark:border-slate-600 transition-opacity ${isDisabled ? 'opacity-50 grayscale' : ''}`}>
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 text-indigo-600 rounded bg-transparent dark:bg-slate-700 border-slate-300 dark:border-slate-500" 
+                        checked={!!isLinked} 
+                        disabled={isDisabled}
+                        onChange={() => handleToggleAsset(a.id)} 
+                      />
+                      <span className="text-sm font-medium text-slate-900 dark:text-white block sm:hidden">{a.name}</span>
+                    </div>
+                    <div className="flex-1 pl-6 sm:pl-0">
+                      <div className="text-sm font-medium hidden sm:flex items-center justify-between text-slate-900 dark:text-white">
                         {a.name}
-                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${available > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${available > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400'}`}>
                           Avail: {available.toFixed(1)}%
                         </span>
                       </div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">
+                      <div className="flex sm:hidden justify-between items-center mb-1">
+                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${available > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400'}`}>
+                          Avail: {available.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                         ₹{(a.currentValue || a.value || 0).toLocaleString('en-IN')} | SIP: ₹{(a.sip || 0).toLocaleString('en-IN')}
                       </div>
                     </div>
                     {isLinked && (
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs font-medium text-slate-500">Alloc %</label>
+                      <div className="flex items-center gap-2 pl-6 sm:pl-0 mt-2 sm:mt-0">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Alloc %</label>
                         <input 
                           type="number" 
                           max={available + isLinked.allocation} min="0" 
-                          className="w-16 border p-1 text-sm rounded focus:ring-1 focus:ring-indigo-500 outline-none" 
+                          className="w-16 border border-slate-300 dark:border-slate-500 bg-transparent dark:bg-slate-700 dark:text-white p-1 text-sm rounded focus:ring-1 focus:ring-indigo-500 outline-none" 
                           value={isLinked.allocation} 
                           onChange={(e) => {
                             let val = parseFloat(e.target.value) || 0;
@@ -216,22 +224,22 @@ export default function GoalTracker() {
 
         {linkedAssets.length === 0 && (
           <>
-            <div className="flex items-center gap-2 text-xs text-amber-600 mb-2 bg-amber-50 p-2 rounded">
-              <Info size={14} /> 
+            <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 mb-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800/50 p-2 rounded">
+              <Info size={14} className="shrink-0" /> 
               No assets linked. You must manually provide savings and SIP details below.
             </div>
-            <div className="flex flex-wrap gap-4 items-end mb-6">
+            <div className="flex flex-wrap gap-3 sm:gap-4 items-end mb-6">
               <div className="w-32">
-                <label className="block text-xs font-medium text-slate-500 mb-1">Manual Current (₹)</label>
-                <input type="number" className="w-full border p-2 rounded-lg" value={saved} onChange={e => setSaved(e.target.value)} />
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Manual Current (₹)</label>
+                <input type="number" className="w-full border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white p-2 rounded-lg" value={saved} onChange={e => setSaved(e.target.value)} />
               </div>
               <div className="w-32">
-                <label className="block text-xs font-medium text-slate-500 mb-1">Manual SIP (₹)</label>
-                <input type="number" className="w-full border p-2 rounded-lg" value={contribution} onChange={e => setContribution(e.target.value)} />
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Manual SIP (₹)</label>
+                <input type="number" className="w-full border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white p-2 rounded-lg" value={contribution} onChange={e => setContribution(e.target.value)} />
               </div>
               <div className="w-24">
-                <label className="block text-xs font-medium text-slate-500 mb-1">ROI (%)</label>
-                <input type="number" className="w-full border p-2 rounded-lg" value={roi} onChange={e => setRoi(e.target.value)} />
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">ROI (%)</label>
+                <input type="number" className="w-full border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white p-2 rounded-lg" value={roi} onChange={e => setRoi(e.target.value)} />
               </div>
             </div>
           </>
@@ -252,19 +260,19 @@ export default function GoalTracker() {
           
           let targetD = g.date ? new Date(g.date) : null;
           let statusIcon = null;
-          let statusColor = "text-slate-500";
-          let statusBg = "bg-slate-100";
+          let statusColor = "text-slate-500 dark:text-slate-400";
+          let statusBg = "bg-slate-100 dark:bg-slate-700";
           let statusText = "No date set";
 
           if (stats.saved >= g.target) {
-            statusIcon = <CheckCircle2 size={16} />; statusColor = "text-emerald-700"; statusBg = "bg-emerald-100"; statusText = "Achieved";
+            statusIcon = <CheckCircle2 size={16} />; statusColor = "text-emerald-700 dark:text-emerald-400"; statusBg = "bg-emerald-100 dark:bg-emerald-900/30"; statusText = "Achieved";
           } else if (monthsReq === -1 || monthsReq > 1200) {
-            statusIcon = <XCircle size={16} />; statusColor = "text-rose-700"; statusBg = "bg-rose-100"; statusText = "Unachievable";
+            statusIcon = <XCircle size={16} />; statusColor = "text-rose-700 dark:text-rose-400"; statusBg = "bg-rose-100 dark:bg-rose-900/30"; statusText = "Unachievable";
           } else if (targetD) {
             if (predictedDate <= targetD) {
-              statusIcon = <CheckCircle2 size={16} />; statusColor = "text-emerald-700"; statusBg = "bg-emerald-100"; statusText = "On Track";
+              statusIcon = <CheckCircle2 size={16} />; statusColor = "text-emerald-700 dark:text-emerald-400"; statusBg = "bg-emerald-100 dark:bg-emerald-900/30"; statusText = "On Track";
             } else {
-              statusIcon = <AlertTriangle size={16} />; statusColor = "text-amber-700"; statusBg = "bg-amber-100"; statusText = "At Risk";
+              statusIcon = <AlertTriangle size={16} />; statusColor = "text-amber-700 dark:text-amber-400"; statusBg = "bg-amber-100 dark:bg-amber-900/30"; statusText = "At Risk";
             }
           } else {
             statusText = `${predictedDate.toLocaleString('default', {month:'short'})} ${predictedDate.getFullYear()}`;
@@ -273,19 +281,19 @@ export default function GoalTracker() {
           const percent = Math.min((stats.saved / g.target) * 100, 100).toFixed(1);
 
           return (
-            <div key={g.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group">
+            <div key={g.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 sm:p-5 shadow-sm relative group transition-colors">
               <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => handleEditGoal(g)} className="text-slate-400 hover:text-indigo-600 p-1"><Edit2 size={18} /></button>
-                <button onClick={() => removeItem('goals', g.id)} className="text-slate-400 hover:text-rose-500 p-1"><Trash2 size={18} /></button>
+                <button onClick={() => handleEditGoal(g)} className="text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 p-1"><Edit2 size={18} /></button>
+                <button onClick={() => removeItem('goals', g.id)} className="text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 p-1"><Trash2 size={18} /></button>
               </div>
               
-              <div className="flex justify-between items-start mb-4 pr-16">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 pr-16 gap-2">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     {g.name}
-                    {stats.isAssetLinked && <span className="bg-indigo-100 text-indigo-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><LinkIcon size={10} /> Auto-Linked</span>}
+                    {stats.isAssetLinked && <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><LinkIcon size={10} /> Auto-Linked</span>}
                   </h3>
-                  <div className="text-sm text-slate-500 mt-1 flex gap-4">
+                  <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap gap-2 sm:gap-4">
                     <span>Target: ₹{g.target.toLocaleString('en-IN')}</span>
                     <span>SIP: ₹{stats.contribution.toLocaleString('en-IN')}</span>
                     <span>ROI: {stats.roi.toFixed(1)}%</span>
@@ -296,15 +304,15 @@ export default function GoalTracker() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 mt-4 sm:mt-0">
                 <div className="flex justify-between text-sm font-medium">
-                  <span className="text-slate-600">₹{stats.saved.toLocaleString('en-IN')} saved</span>
-                  <span className="text-indigo-600">{percent}%</span>
+                  <span className="text-slate-600 dark:text-slate-300">₹{stats.saved.toLocaleString('en-IN')} saved</span>
+                  <span className="text-indigo-600 dark:text-indigo-400">{percent}%</span>
                 </div>
-                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                   <div className="h-full bg-indigo-500 transition-all duration-500" style={{width: `${percent}%`}}></div>
                 </div>
-                <div className="text-xs text-slate-400 text-right mt-1">
+                <div className="text-xs text-slate-400 dark:text-slate-500 text-right mt-1">
                   Predicted: {monthsReq <= 1200 && monthsReq !== -1 ? `${predictedDate.toLocaleString('default', {month:'short'})} ${predictedDate.getFullYear()}` : 'Never'}
                 </div>
               </div>
@@ -312,7 +320,7 @@ export default function GoalTracker() {
           );
         })}
         {state.goals.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500">
+          <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 transition-colors">
             No goals added. Start planning your future!
           </div>
         )}

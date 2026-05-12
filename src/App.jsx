@@ -34,15 +34,15 @@ function App() {
 
   return (
     <AppStateProvider>
-      <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans">
+      <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
         
         {/* Mobile Header */}
-        <div className="md:hidden fixed top-0 w-full bg-white border-b border-slate-200 z-20 px-4 py-3 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-2 text-indigo-600">
+        <div className="md:hidden fixed top-0 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 px-4 py-3 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
              <PieChart size={24} /> 
-             <span className="font-bold text-lg tracking-tight">FinGoal OS</span>
+             <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">FinGoal OS</span>
           </div>
-          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
             <Menu size={24} />
           </button>
         </div>

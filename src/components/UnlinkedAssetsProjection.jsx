@@ -5,6 +5,7 @@ import { TrendingUp, Layers, Rocket } from 'lucide-react';
 
 export default function UnlinkedAssetsProjection() {
   const { state } = useAppState();
+  const theme = state.settings?.theme || 'light';
   const [years, setYears] = useState(15);
 
   const projectionData = useMemo(() => {
@@ -87,12 +88,12 @@ export default function UnlinkedAssetsProjection() {
 
   if (projectionData.unlinkedAssets.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm min-h-[400px] flex flex-col items-center justify-center text-center">
-        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 sm:p-6 shadow-sm min-h-[300px] flex flex-col items-center justify-center text-center transition-colors">
+        <div className="w-16 h-16 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400 dark:text-slate-500">
           <Layers size={32} />
         </div>
-        <h3 className="text-lg font-medium text-slate-900">Fully Allocated</h3>
-        <p className="text-sm text-slate-500 mt-2 max-w-sm mx-auto">
+        <h3 className="text-lg font-medium text-slate-900 dark:text-white">Fully Allocated</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-sm mx-auto">
           All your assets are 100% tied to your goals. You have no "unlinked" or free-floating wealth to project here!
         </p>
       </div>
@@ -100,17 +101,17 @@ export default function UnlinkedAssetsProjection() {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex flex-col min-h-[450px]">
-      <div className="flex items-start justify-between mb-6">
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 sm:p-6 shadow-sm flex flex-col min-h-[400px] transition-colors">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4 sm:mb-6">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <TrendingUp className="text-indigo-600" size={20} />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <TrendingUp className="text-indigo-600 dark:text-indigo-400" size={20} />
             Unlinked Assets Projection
           </h2>
-          <p className="text-sm text-slate-500 mt-1">Growth of assets not tied to any specific goal.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Growth of assets not tied to any specific goal.</p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-slate-600">{years} Years</span>
+          <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{years} Years</span>
           <input 
             type="range" 
             min="5" max="30" step="1" 
@@ -121,18 +122,18 @@ export default function UnlinkedAssetsProjection() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-          <div className="text-xs text-slate-500 font-medium mb-1">Current Unlinked Value</div>
-          <div className="text-xl font-bold text-slate-800">{formatCurrency(currentTotal)}</div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <div className="bg-slate-50 dark:bg-slate-700/50 p-3 sm:p-4 rounded-lg border border-slate-100 dark:border-slate-600">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Current Unlinked Value</div>
+          <div className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">{formatCurrency(currentTotal)}</div>
         </div>
-        <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
-          <div className="text-xs text-indigo-600 font-medium mb-1 flex items-center gap-1"><Rocket size={12}/> Projected Value</div>
-          <div className="text-xl font-bold text-indigo-700">{formatCurrency(projectedTotal)}</div>
+        <div className="bg-indigo-50 dark:bg-indigo-900/30 p-3 sm:p-4 rounded-lg border border-indigo-100 dark:border-indigo-800/50">
+          <div className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mb-1 flex items-center gap-1"><Rocket size={12}/> Projected Value</div>
+          <div className="text-lg sm:text-xl font-bold text-indigo-700 dark:text-indigo-300">{formatCurrency(projectedTotal)}</div>
         </div>
-        <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-100 col-span-2 md:col-span-1">
-          <div className="text-xs text-emerald-600 font-medium mb-1">Wealth Generated</div>
-          <div className="text-xl font-bold text-emerald-700">+{formatCurrency(wealthGained)}</div>
+        <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 sm:p-4 rounded-lg border border-emerald-100 dark:border-emerald-800/50 col-span-2 md:col-span-1">
+          <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">Wealth Generated</div>
+          <div className="text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-300">+{formatCurrency(wealthGained)}</div>
         </div>
       </div>
 
@@ -141,20 +142,20 @@ export default function UnlinkedAssetsProjection() {
           <ComposedChart data={projectionData.data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="colorInvested" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.4}/>
-                <stop offset="95%" stopColor="#94a3b8" stopOpacity={0.05}/>
+                <stop offset="5%" stopColor={theme === 'dark' ? '#cbd5e1' : '#94a3b8'} stopOpacity={0.4}/>
+                <stop offset="95%" stopColor={theme === 'dark' ? '#cbd5e1' : '#94a3b8'} stopOpacity={0.05}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-            <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={formatYAxis} dx={-10} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
+            <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} dy={10} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} tickFormatter={formatYAxis} dx={-10} />
             <Tooltip 
               formatter={(value, name) => [formatCurrency(value), name === 'amount' ? 'Total Value' : 'Total Invested']}
               labelFormatter={(label) => `Year ${label}`}
-              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+              contentStyle={{ borderRadius: '8px', border: theme === 'dark' ? '1px solid #334155' : 'none', backgroundColor: theme === 'dark' ? '#1e293b' : '#fff', color: theme === 'dark' ? '#f8fafc' : '#0f172a', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             />
-            <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }}/>
-            <Area type="monotone" dataKey="invested" name="Total Invested" stroke="#94a3b8" strokeWidth={2} fillOpacity={1} fill="url(#colorInvested)" />
+            <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: theme === 'dark' ? '#94a3b8' : '#64748b' }}/>
+            <Area type="monotone" dataKey="invested" name="Total Invested" stroke={theme === 'dark' ? '#cbd5e1' : '#94a3b8'} strokeWidth={2} fillOpacity={1} fill="url(#colorInvested)" />
             <Line type="monotone" dataKey="amount" name="Projected Value" stroke="#4F46E5" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: '#4F46E5', stroke: '#fff', strokeWidth: 2 }} />
           </ComposedChart>
         </ResponsiveContainer>

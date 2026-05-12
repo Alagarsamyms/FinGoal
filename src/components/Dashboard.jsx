@@ -8,17 +8,17 @@ import CashflowFunnel from './CashflowFunnel';
 
 export default function Dashboard() {
   return (
-    <div className="max-w-7xl mx-auto space-y-10 pb-20">
+    <div className="max-w-7xl mx-auto space-y-6 md:space-y-8 pb-20">
       <ExecutiveSummary />
       
       {/* Portfolio & Cashflow Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <PortfolioDiversification />
         <CashflowFunnel />
       </div>
       
       {/* Charts and Overviews */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="lg:col-span-2">
           <UnlinkedAssetsProjection />
         </div>
