@@ -84,7 +84,8 @@ export default function UnlinkedAssetsProjection() {
 
   const currentTotal = projectionData.totalCurrentValue;
   const projectedTotal = projectionData.data.length > 0 ? projectionData.data[projectionData.data.length - 1].amount : 0;
-  const wealthGained = projectedTotal - currentTotal;
+  const totalInvestedAtEnd = projectionData.data.length > 0 ? projectionData.data[projectionData.data.length - 1].invested : 0;
+  const wealthGained = projectedTotal - totalInvestedAtEnd;
 
   if (projectionData.unlinkedAssets.length === 0) {
     return (
@@ -132,7 +133,7 @@ export default function UnlinkedAssetsProjection() {
           <div className="text-lg sm:text-xl font-bold text-indigo-700 dark:text-indigo-300">{formatCurrency(projectedTotal)}</div>
         </div>
         <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 sm:p-4 rounded-lg border border-emerald-100 dark:border-emerald-800/50 col-span-2 md:col-span-1">
-          <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">Wealth Generated</div>
+          <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">Pure Profit (Est. Returns)</div>
           <div className="text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-300">+{formatCurrency(wealthGained)}</div>
         </div>
       </div>
@@ -150,7 +151,7 @@ export default function UnlinkedAssetsProjection() {
             <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} dy={10} />
             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} tickFormatter={formatYAxis} dx={-10} />
             <Tooltip 
-              formatter={(value, name) => [formatCurrency(value), name === 'amount' ? 'Total Value' : 'Total Invested']}
+              formatter={(value) => [formatCurrency(value)]}
               labelFormatter={(label) => `Year ${label}`}
               contentStyle={{ borderRadius: '8px', border: theme === 'dark' ? '1px solid #334155' : 'none', backgroundColor: theme === 'dark' ? '#1e293b' : '#fff', color: theme === 'dark' ? '#f8fafc' : '#0f172a', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             />
