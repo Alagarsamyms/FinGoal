@@ -14,6 +14,7 @@ const COLORS = {
 
 export default function PortfolioDiversification() {
   const { state } = useAppState();
+  const theme = state.settings?.theme || 'light';
 
   const data = useMemo(() => {
     const grouped = {};
@@ -40,21 +41,21 @@ export default function PortfolioDiversification() {
 
   if (data.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm min-h-[350px] flex flex-col items-center justify-center text-center">
-        <PieChartIcon size={32} className="text-slate-300 mb-2" />
-        <p className="text-slate-500 text-sm">No assets to analyze.</p>
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 sm:p-6 shadow-sm min-h-[300px] flex flex-col items-center justify-center text-center transition-colors">
+        <PieChartIcon size={32} className="text-slate-300 dark:text-slate-600 mb-2" />
+        <p className="text-slate-500 dark:text-slate-400 text-sm">No assets to analyze.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex flex-col min-h-[350px]">
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 sm:p-6 shadow-sm flex flex-col min-h-[300px] transition-colors">
       <div className="mb-4">
-        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-          <PieChartIcon className="text-indigo-600" size={20} />
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <PieChartIcon className="text-indigo-600 dark:text-indigo-400" size={20} />
           Portfolio Diversification
         </h2>
-        <p className="text-sm text-slate-500 mt-1">Asset allocation and exposure risk.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Asset allocation and exposure risk.</p>
       </div>
 
       <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-6">
@@ -77,7 +78,7 @@ export default function PortfolioDiversification() {
               </Pie>
               <Tooltip 
                 formatter={(value) => [formatCurrency(value), 'Value']}
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                contentStyle={{ borderRadius: '8px', border: theme === 'dark' ? '1px solid #334155' : 'none', backgroundColor: theme === 'dark' ? '#1e293b' : '#fff', color: theme === 'dark' ? '#f8fafc' : '#0f172a', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -88,11 +89,11 @@ export default function PortfolioDiversification() {
             <div key={idx} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                <span className="text-sm font-medium text-slate-700">{entry.name}</span>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{entry.name}</span>
               </div>
               <div className="text-right">
-                <span className="text-sm font-bold text-slate-900 block">{entry.percentage}%</span>
-                <span className="text-[10px] text-slate-400">{formatCurrency(entry.value)}</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white block">{entry.percentage}%</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500">{formatCurrency(entry.value)}</span>
               </div>
             </div>
           ))}
