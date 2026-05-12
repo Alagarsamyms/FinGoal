@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppState } from '../context/AppStateContext';
-import { Wallet, Receipt, CreditCard, TrendingUp, Landmark, FileWarning, Percent, ShieldAlert } from 'lucide-react';
+import { Wallet, Receipt, CreditCard, TrendingUp, Landmark, FileWarning, Percent, ShieldAlert, PiggyBank } from 'lucide-react';
 
 const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
 
@@ -52,7 +52,7 @@ export default function ExecutiveSummary() {
           <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1">Your financial command center at a glance.</p>
         </div>
         <div className="flex gap-3 md:gap-4 overflow-x-auto pb-2 md:pb-0">
-          <div className="glass-panel dark:bg-slate-800/80 dark:border-slate-700/50 px-4 md:px-6 py-3 md:py-4 rounded-xl flex flex-col items-center justify-center min-w-[120px]">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm px-4 md:px-6 py-3 md:py-4 rounded-xl flex flex-col items-center justify-center min-w-[120px] transition-colors">
             <span className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Health Score</span>
             <div className="flex items-baseline gap-1">
               <span className={`text-2xl md:text-3xl font-bold ${healthScore >= 80 ? 'text-emerald-500' : healthScore >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>{healthScore}</span>
@@ -75,6 +75,7 @@ export default function ExecutiveSummary() {
         <MetricCard label="Total Debt" value={formatCurrency(totalDebt)} icon={<FileWarning size={18} />} color="text-rose-600 dark:text-rose-500" />
         <MetricCard label="Debt-to-Income" value={`${dti.toFixed(1)}%`} icon={<Percent size={18} />} color={dti > 40 ? 'text-rose-600 dark:text-rose-500' : 'text-slate-900 dark:text-white'} />
         <MetricCard label="Emergency Fund" value={formatCurrency(emergencyCurrent)} icon={<ShieldAlert size={18} />} subtitle={`Target: ${formatCurrency(emergencyTarget)}`} color="text-slate-900 dark:text-white" />
+        <MetricCard label="Savings Rate" value={`${savingsRate.toFixed(1)}%`} icon={<PiggyBank size={18} />} subtitle={`Surplus: ${formatCurrency(surplus)}`} color={savingsRate >= 20 ? 'text-emerald-600 dark:text-emerald-500' : savingsRate < 10 ? 'text-rose-600 dark:text-rose-500' : 'text-amber-600 dark:text-amber-500'} />
       </div>
     </div>
   );

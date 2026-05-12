@@ -10,7 +10,9 @@ export default function AccountsAndDebt() {
   const [assetCurrent, setAssetCurrent] = useState('');
   const [assetSip, setAssetSip] = useState('');
   const [assetRoi, setAssetRoi] = useState('');
-  const [assetType, setAssetType] = useState('Mutual Fund');
+  
+  const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Equity', 'Gold', 'Real Estate', 'Debt', 'Cash'];
+  const [assetType, setAssetType] = useState(assetTypes[0]);
   const [editingAssetId, setEditingAssetId] = useState(null);
 
   const [liabName, setLiabName] = useState('');
@@ -142,12 +144,9 @@ export default function AccountsAndDebt() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <input type="text" placeholder="Asset Name" className="border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 p-2 rounded-lg col-span-2 md:col-span-1" value={assetName} onChange={e => setAssetName(e.target.value)} />
             <select className="border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white p-2 rounded-lg col-span-2 md:col-span-1" value={assetType} onChange={e => setAssetType(e.target.value)}>
-              <option>Mutual Fund</option>
-              <option>Equity</option>
-              <option>Gold</option>
-              <option>Real Estate</option>
-              <option>Debt</option>
-              <option>Cash</option>
+              {assetTypes.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
             </select>
             <input type="number" placeholder="Invested (₹)" className="border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 p-2 rounded-lg" value={assetInvested} onChange={e => setAssetInvested(e.target.value)} />
             <input type="number" placeholder="Current Value (₹)" className="border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 p-2 rounded-lg" value={assetCurrent} onChange={e => setAssetCurrent(e.target.value)} />

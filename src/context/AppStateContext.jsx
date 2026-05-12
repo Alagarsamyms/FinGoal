@@ -15,7 +15,8 @@ const initialState = {
   },
   settings: {
     openaiApiKey: '',
-    theme: 'light'
+    theme: 'light',
+    assetTypes: ['Mutual Fund', 'Equity', 'Gold', 'Real Estate', 'Debt', 'Cash']
   },
   lastUpdated: 0
 };
@@ -80,6 +81,46 @@ export const AppStateProvider = ({ children }) => {
     }));
   };
 
+  const addAssetType = (type) => {
+    setState(prev => {
+      const currentTypes = prev.settings?.assetTypes || ['Mutual Fund', 'Equity', 'Gold', 'Real Estate', 'Debt', 'Cash'];
+      if (currentTypes.includes(type)) return prev;
+      return {
+        ...prev,
+        settings: { ...prev.settings, assetTypes: [...currentTypes, type] },
+        lastUpdated: Date.now()
+      };
+    });
+  };
+
+  const removeAssetType = (type) => {
+    setState(prev => {
+      const currentTypes = prev.settings?.assetTypes || ['Mutual Fund', 'Equity', 'Gold', 'Real Estate', 'Debt', 'Cash'];
+      return {
+        ...prev,
+        settings: { ...prev.settings, assetTypes: currentTypes.filter(t => t !== type) },
+        lastUpdated: Date.now()
+      };
+    });
+  };
+
+  const renameAssetType = (oldType, newType) => {
+    setState(prev => {
+      const currentTypes = prev.settings?.assetTypes || ['Mutual Fund', 'Equity', 'Gold', 'Real Estate', 'Debt', 'Cash'];
+      if (!currentTypes.includes(oldType) || currentTypes.includes(newType)) return prev;
+      
+      const newAssetTypes = currentTypes.map(t => t === oldType ? newType : t);
+      const newAssets = prev.assets.map(a => a.type === oldType ? { ...a, type: newType } : a);
+      
+      return {
+        ...prev,
+        settings: { ...prev.settings, assetTypes: newAssetTypes },
+        assets: newAssets,
+        lastUpdated: Date.now()
+      };
+    });
+  };
+
   // Expose global state setter for GDrive sync
   useEffect(() => {
     window.updateAppStateFromDrive = (data) => {
@@ -97,7 +138,10 @@ export const AppStateProvider = ({ children }) => {
       updateProtection,
       addItem,
       removeItem,
-      updateItem
+      updateItem,
+      addAssetType,
+      removeAssetType,
+      renameAssetType
     }}>
       {children}
     </AppStateContext.Provider>
