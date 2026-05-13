@@ -12,6 +12,17 @@ const COLORS = {
   'Cash': '#14b8a6' // teal-500
 };
 
+const FALLBACK_COLORS = [
+  '#ec4899', // pink-500
+  '#f43f5e', // rose-500
+  '#d946ef', // fuchsia-500
+  '#f97316', // orange-500
+  '#84cc16', // lime-500
+  '#06b6d4', // cyan-500
+  '#3b82f6', // blue-500
+  '#64748b'  // slate-500
+];
+
 export default function PortfolioDiversification() {
   const { state } = useAppState();
   const theme = state.settings?.theme || 'light';
@@ -29,10 +40,10 @@ export default function PortfolioDiversification() {
       }
     });
 
-    return Object.keys(grouped).map(key => ({
+    return Object.keys(grouped).map((key, index) => ({
       name: key,
       value: grouped[key],
-      color: COLORS[key] || '#94a3b8',
+      color: COLORS[key] || FALLBACK_COLORS[index % FALLBACK_COLORS.length],
       percentage: total > 0 ? ((grouped[key] / total) * 100).toFixed(1) : 0
     })).sort((a, b) => b.value - a.value);
   }, [state.assets]);

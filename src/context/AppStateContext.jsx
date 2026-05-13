@@ -16,7 +16,8 @@ const initialState = {
   settings: {
     openaiApiKey: '',
     theme: 'light',
-    assetTypes: ['Mutual Fund', 'Equity', 'Gold', 'Real Estate', 'Debt', 'Cash']
+    assetTypes: ['Mutual Fund', 'Equity', 'Gold', 'Real Estate', 'Debt', 'Cash'],
+    dob: ''
   },
   lastUpdated: 0
 };

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
 import { Flame, Target, Rocket, AlertTriangle } from 'lucide-react';
@@ -11,6 +11,24 @@ export default function FireDashboard() {
   const [swr, setSwr] = useState(4.0);
   const [roi, setRoi] = useState(12.0);
   const [inflation, setInflation] = useState(6.0);
+  const [useNetworth, setUseNetworth] = useState(false);
+  const [investmentStopAge, setInvestmentStopAge] = useState(60);
+
+  // Auto-calculate age from DOB if available
+  useEffect(() => {
+    if (state.settings?.dob) {
+      const birthDate = new Date(state.settings.dob);
+      const today = new Date();
+      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        calculatedAge--;
+      }
+      if (calculatedAge > 18 && calculatedAge < 100) {
+        setAge(calculatedAge);
+      }
+    }
+  }, [state.settings?.dob]);
 
   const expenses = parseFloat(state.expenses) || 0;
   const income = parseFloat(state.income) || 0;
@@ -30,10 +48,40 @@ export default function FireDashboard() {
   const projection = useMemo(() => {
     if (expenses <= 0) return { data: [], fireAge: null, fireCorpus: 0 };
 
+    // Calculate Unlinked Assets logic if toggle is OFF
+    let startCorpus = 0;
+    let startSurplus = 0;
+
+    if (!useNetworth) {
+      // Logic from UnlinkedAssetsProjection
+      const assetAllocations = {};
+      state.goals.forEach(g => {
+        if (g.linkedAssets) {
+          g.linkedAssets.forEach(link => {
+            if (!assetAllocations[link.assetId]) assetAllocations[link.assetId] = 0;
+            assetAllocations[link.assetId] += (parseFloat(link.allocation) || 0);
+          });
+        }
+      });
+
+      state.assets.forEach(a => {
+        const allocated = assetAllocations[a.id] || 0;
+        const unallocatedPercent = Math.max(0, 100 - allocated);
+        const val = parseFloat(a.currentValue || a.value || 0);
+        const sip = parseFloat(a.sip || 0);
+
+        startCorpus += (val * (unallocatedPercent / 100));
+        startSurplus += (sip * (unallocatedPercent / 100));
+      });
+    } else {
+      startCorpus = currentCorpus > 0 ? currentCorpus : 0;
+      startSurplus = surplus > 0 ? surplus : 0;
+    }
+
     const initialTarget = (expenses * 12) / (swr / 100);
     const data = [];
     
-    let corpus = currentCorpus > 0 ? currentCorpus : 0;
+    let corpus = startCorpus;
     let target = initialTarget;
     let fireAge = null;
     let fireCorpus = 0;
@@ -44,7 +92,8 @@ export default function FireDashboard() {
     data.push({
       age,
       corpus: Math.round(corpus),
-      target: Math.round(target)
+      target: Math.round(target),
+      invested: Math.round(corpus)
     });
 
     for (let i = 1; i <= 50; i++) {
@@ -54,9 +103,12 @@ export default function FireDashboard() {
       target = target * (1 + annualInf);
 
       // Corpus grows with ROI + Annual Surplus Compounding
-      // Simple approximation: Surplus contributed monthly, growing over the year
-      if (surplus > 0) {
-        corpus = (corpus * (1 + annualRoi)) + (surplus * 12 * (1 + annualRoi / 2));
+      // Stop adding surplus if age > investmentStopAge
+      const isInvesting = currentAge <= investmentStopAge;
+      const yearlyContribution = isInvesting ? startSurplus * 12 : 0;
+
+      if (yearlyContribution > 0) {
+        corpus = (corpus * (1 + annualRoi)) + (yearlyContribution * (1 + annualRoi / 2));
       } else {
         corpus = corpus * (1 + annualRoi);
       }
@@ -74,7 +126,7 @@ export default function FireDashboard() {
     }
 
     return { data, fireAge, fireCorpus, initialTarget };
-  }, [age, swr, roi, inflation, currentCorpus, surplus, expenses]);
+  }, [age, swr, roi, inflation, currentCorpus, surplus, expenses, useNetworth, state.assets, state.goals, investmentStopAge]);
 
   const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
   const formatYAxis = (val) => {
@@ -110,33 +162,59 @@ export default function FireDashboard() {
       </div>
 
       {/* Control Panel */}
-      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 transition-colors">
-        <div>
-          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Current Age</label>
-          <div className="flex items-center gap-3">
-            <input type="range" min="18" max="70" value={age} onChange={(e) => setAge(parseInt(e.target.value))} className="flex-1 accent-indigo-600 dark:accent-indigo-500" />
-            <span className="font-semibold w-8 text-slate-700 dark:text-slate-300">{age}</span>
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-6 transition-colors">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-700 pb-4">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Projection Strategy</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Choose which assets to include in your retirement math.</p>
+          </div>
+          <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-lg w-full sm:w-auto">
+            <button 
+              onClick={() => setUseNetworth(false)}
+              className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-xs font-bold transition-all ${!useNetworth ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
+            >
+              Unlinked Assets
+            </button>
+            <button 
+              onClick={() => setUseNetworth(true)}
+              className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-xs font-bold transition-all ${useNetworth ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
+            >
+              Full Networth
+            </button>
           </div>
         </div>
-        <div>
-          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Safe Withdrawal (SWR)</label>
-          <div className="flex items-center gap-3">
-            <input type="range" min="2" max="8" step="0.5" value={swr} onChange={(e) => setSwr(parseFloat(e.target.value))} className="flex-1 accent-indigo-600 dark:accent-indigo-500" />
-            <span className="font-semibold w-10 text-slate-700 dark:text-slate-300">{swr}%</span>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Current Age</label>
+            <div className="flex items-center gap-3">
+              <input type="range" min="18" max="70" value={age} onChange={(e) => setAge(parseInt(e.target.value))} className="flex-1 accent-indigo-600 dark:accent-indigo-500" />
+              <span className="font-semibold w-8 text-slate-700 dark:text-slate-300">{age}</span>
+            </div>
           </div>
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Expected ROI</label>
-          <div className="flex items-center gap-3">
-            <input type="range" min="5" max="20" step="0.5" value={roi} onChange={(e) => setRoi(parseFloat(e.target.value))} className="flex-1 accent-indigo-600 dark:accent-indigo-500" />
-            <span className="font-semibold w-10 text-slate-700 dark:text-slate-300">{roi}%</span>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Stop Investing At</label>
+            <div className="flex items-center gap-3">
+              <input type="range" min={age} max="80" value={investmentStopAge} onChange={(e) => setInvestmentStopAge(parseInt(e.target.value))} className="flex-1 accent-emerald-600 dark:accent-emerald-500" />
+              <span className="font-semibold w-8 text-slate-700 dark:text-slate-300">{investmentStopAge}</span>
+            </div>
           </div>
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Inflation Rate</label>
-          <div className="flex items-center gap-3">
-            <input type="range" min="2" max="12" step="0.5" value={inflation} onChange={(e) => setInflation(parseFloat(e.target.value))} className="flex-1 accent-indigo-600 dark:accent-indigo-500" />
-            <span className="font-semibold w-10 text-slate-700 dark:text-slate-300">{inflation}%</span>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Safe Withdrawal (SWR)</label>
+            <div className="flex items-center gap-3">
+              <input type="range" min="2" max="8" step="0.5" value={swr} onChange={(e) => setSwr(parseFloat(e.target.value))} className="flex-1 accent-indigo-600 dark:accent-indigo-500" />
+              <span className="font-semibold w-10 text-slate-700 dark:text-slate-300">{swr}%</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">ROI</label>
+              <input type="number" step="0.5" value={roi} onChange={(e) => setRoi(parseFloat(e.target.value))} className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-2 py-1 text-sm font-semibold text-slate-700 dark:text-slate-300" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Inflation</label>
+              <input type="number" step="0.5" value={inflation} onChange={(e) => setInflation(parseFloat(e.target.value))} className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-2 py-1 text-sm font-semibold text-slate-700 dark:text-slate-300" />
+            </div>
           </div>
         </div>
       </div>
