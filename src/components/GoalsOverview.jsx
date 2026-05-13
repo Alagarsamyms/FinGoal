@@ -20,10 +20,43 @@ export default function GoalsOverview() {
     );
   }
 
+  const calculateGoalStats = (goal) => {
+    let gSaved = parseFloat(goal.saved) || 0;
+    let gContrib = parseFloat(goal.contribution) || 0;
+    let gRoi = parseFloat(goal.roi) || 0;
+
+    if (goal.linkedAssets && goal.linkedAssets.length > 0) {
+      let totalCurrent = 0;
+      let totalSip = 0;
+      let weightedRoiSum = 0;
+
+      goal.linkedAssets.forEach(link => {
+        const a = state.assets.find(ast => ast.id === link.assetId);
+        if (a) {
+          const val = a.currentValue || a.value || 0;
+          const alloc = (parseFloat(link.allocation) || 0) / 100;
+          const allocVal = val * alloc;
+          const allocSip = (a.sip || 0) * alloc;
+          
+          totalCurrent += allocVal;
+          totalSip += allocSip;
+          weightedRoiSum += (a.roi || 0) * allocVal;
+        }
+      });
+
+      gSaved = totalCurrent;
+      gContrib = totalSip;
+      gRoi = totalCurrent > 0 ? (weightedRoiSum / totalCurrent) : 0;
+    }
+    return { saved: gSaved, contribution: gContrib, roi: gRoi };
+  };
+
   // Sort goals by progress (closest to completion first)
   const sortedGoals = [...goals].sort((a, b) => {
-    const pA = Math.min((a.saved / a.target) * 100, 100);
-    const pB = Math.min((b.saved / b.target) * 100, 100);
+    const statsA = calculateGoalStats(a);
+    const statsB = calculateGoalStats(b);
+    const pA = Math.min((statsA.saved / a.target) * 100, 100);
+    const pB = Math.min((statsB.saved / b.target) * 100, 100);
     return pB - pA;
   });
 
@@ -65,9 +98,10 @@ export default function GoalsOverview() {
 
       <div className="flex-1 overflow-y-auto pr-2 space-y-4 sm:space-y-6">
         {sortedGoals.map(g => {
-          const percent = Math.min((g.saved / g.target) * 100, 100);
+          const stats = calculateGoalStats(g);
+          const percent = Math.min((stats.saved / g.target) * 100, 100);
           const isComplete = percent === 100;
-          const months = calculateMonthsToGoal(g.saved, g.target, g.contribution, g.roi);
+          const months = calculateMonthsToGoal(stats.saved, g.target, stats.contribution, stats.roi);
           const projectedDate = getProjectedDateString(months);
           
           return (
@@ -77,7 +111,7 @@ export default function GoalsOverview() {
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">{g.name}</h3>
                   <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex gap-2 items-center mt-1">
                     <TrendingUp size={14} className={isComplete ? "text-emerald-500 dark:text-emerald-400" : "text-indigo-400 dark:text-indigo-500"} />
-                    ₹{g.saved.toLocaleString('en-IN')} / ₹{g.target.toLocaleString('en-IN')}
+                    ₹{stats.saved.toLocaleString('en-IN')} / ₹{g.target.toLocaleString('en-IN')}
                   </div>
                 </div>
                 <div className="text-right">

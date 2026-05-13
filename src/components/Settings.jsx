@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { exportToExcel } from '../utils/exportExcel';
-import { Download, Database, Layers, Plus, Edit2, Trash2, Check, X } from 'lucide-react';
+import { Download, Database, Layers, Plus, Edit2, Trash2, Check, X, User } from 'lucide-react';
 
 export default function Settings() {
   const { state, updateField, addAssetType, removeAssetType, renameAssetType } = useAppState();
@@ -43,6 +43,29 @@ export default function Settings() {
                 onChange={handleKeyChange} 
               />
               <p className="text-xs text-slate-400 dark:text-slate-500">Your key is synced securely to your Google Drive and never sent to any other server.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4 sm:space-y-6 transition-colors">
+        <div className="flex flex-col sm:flex-row items-start gap-4">
+          <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 flex-shrink-0">
+            <User size={24} />
+          </div>
+          <div className="flex-1 w-full">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Personal Information</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
+              Your details are used to calculate age-based projections in the FIRE engine and Protection analysis.
+            </p>
+            <div className="space-y-2 max-w-xs">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Date of Birth</label>
+              <input 
+                type="date" 
+                className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-blue-500 outline-none" 
+                value={state.settings?.dob || ''} 
+                onChange={(e) => updateField('settings', { ...state.settings, dob: e.target.value })} 
+              />
             </div>
           </div>
         </div>
