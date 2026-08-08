@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { exportToExcel } from '../utils/exportExcel';
-import { Download, Database, Layers, Plus, Edit2, Trash2, Check, X, User } from 'lucide-react';
+import { Download, Database, Layers, Plus, Edit2, Trash2, Check, X, User, Loader2 } from 'lucide-react';
 
 export default function Settings() {
   const { state, updateField, addAssetType, removeAssetType, renameAssetType } = useAppState();
 
   const [newType, setNewType] = useState('');
+  const [exporting, setExporting] = useState(false);
   const [editingType, setEditingType] = useState(null);
   const [editingValue, setEditingValue] = useState('');
 
@@ -172,11 +173,16 @@ export default function Settings() {
               Export your entire FinGoal OS state into a formatted Excel spreadsheet for offline analysis or safe keeping.
             </p>
             <button 
-              onClick={() => exportToExcel(state)}
-              className="flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors"
+              onClick={() => {
+                setExporting(true);
+                try { exportToExcel(state); }
+                finally { setExporting(false); }
+              }}
+              disabled={exporting}
+              className="flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-wait text-white rounded-lg font-medium transition-colors"
             >
-              <Download size={18} />
-              Export to Excel (.xlsx)
+              {exporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+              {exporting ? 'Generating Excel…' : 'Export to Excel (.xlsx)'}
             </button>
           </div>
         </div>

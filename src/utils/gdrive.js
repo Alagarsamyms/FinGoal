@@ -10,8 +10,10 @@ let tokenClient;
 let gapiInited = false;
 let gisInited = false;
 let fileId = null;
+let chatFileId = null; // separate file for AI chat history
 
 const FILENAME = 'fingoal_v2_data.json';
+const CHAT_FILENAME = 'fingoal_ai_chat.json';
 
 export function initializeGoogleDriveSync() {
     // Inject scripts
@@ -60,6 +62,8 @@ function maybeEnableButtons() {
             localStorage.setItem('gdrive_auto_sync', 'true');
             updateSyncStatusUI(true);
             await loadFromDrive();
+            // Also load chat from drive on initial auth
+            await loadChatFromDrive();
         };
 
         const isAutoSync = localStorage.getItem('gdrive_auto_sync') === 'true';
@@ -72,6 +76,7 @@ function maybeEnableButtons() {
                 gapi.client.setToken(storedToken);
                 updateSyncStatusUI(true);
                 loadFromDrive();
+                loadChatFromDrive();
             } else {
                 updateSyncStatusUI(false, "Reconnecting...");
                 tokenClient.requestAccessToken({ prompt: '' });
@@ -213,3 +218,87 @@ window.addEventListener('focus', () => {
         }
     }
 });
+
+/**
+ * Returns true if the user is currently authenticated with Google Drive.
+ */
+export function isSyncedToDrive() {
+    return !!(
+        window.gapi &&
+        typeof gapi.client !== 'undefined' &&
+        gapi.client.getToken() !== null &&
+        localStorage.getItem('gdrive_auto_sync') === 'true'
+    );
+}
+
+/**
+ * Sync AI chat messages to a separate fingoal_ai_chat.json in Google Drive appDataFolder.
+ * @param {Array} messages - Array of chat message objects
+ */
+export async function syncChatToDrive(messages) {
+    if (!isSyncedToDrive()) return;
+
+    const fileContent = JSON.stringify({ messages, savedAt: Date.now() });
+    const file = new Blob([fileContent], { type: 'application/json' });
+    const accessToken = gapi.client.getToken().access_token;
+
+    try {
+        if (chatFileId) {
+            // Update existing file
+            const metadata = { name: CHAT_FILENAME };
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', file);
+            await fetch(
+                `https://www.googleapis.com/upload/drive/v3/files/${chatFileId}?uploadType=multipart`,
+                { method: 'PATCH', headers: new Headers({ 'Authorization': 'Bearer ' + accessToken }), body: form }
+            );
+        } else {
+            // Create new file
+            const metadata = { name: CHAT_FILENAME, parents: ['appDataFolder'] };
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', file);
+            const response = await fetch(
+                'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+                { method: 'POST', headers: new Headers({ 'Authorization': 'Bearer ' + accessToken }), body: form }
+            );
+            const data = await response.json();
+            chatFileId = data.id;
+        }
+    } catch (err) {
+        console.error('Error saving chat to Drive', err);
+    }
+}
+
+/**
+ * Load AI chat messages from fingoal_ai_chat.json in Google Drive.
+ * Returns the messages array or null if not found.
+ * Also dispatches a custom event 'chatLoadedFromDrive' with the messages.
+ */
+export async function loadChatFromDrive() {
+    if (!isSyncedToDrive()) return null;
+
+    try {
+        const response = await gapi.client.drive.files.list({
+            spaces: 'appDataFolder',
+            fields: 'files(id, name)',
+            pageSize: 20
+        });
+        const files = response.result.files;
+        const found = files.find(f => f.name === CHAT_FILENAME);
+
+        if (found) {
+            chatFileId = found.id;
+            const fileResponse = await gapi.client.drive.files.get({ fileId: chatFileId, alt: 'media' });
+            const data = fileResponse.result;
+            const messages = data.messages || [];
+            // Notify Simulation component
+            window.dispatchEvent(new CustomEvent('chatLoadedFromDrive', { detail: { messages } }));
+            return messages;
+        }
+    } catch (err) {
+        console.error('Error loading chat from Drive', err);
+    }
+    return null;
+}
