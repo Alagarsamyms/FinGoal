@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { exportToExcel } from '../utils/exportExcel';
 import { Download, Database, Layers, Plus, Edit2, Trash2, Check, X, User, Loader2 } from 'lucide-react';
+import { InfoTooltip } from './Onboarding';
 
 export default function Settings() {
   const { state, updateField, addAssetType, removeAssetType, renameAssetType } = useAppState();
@@ -20,7 +21,9 @@ export default function Settings() {
   return (
     <div className="space-y-6 md:space-y-8 pb-20 max-w-3xl mx-auto transition-colors">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">AI & Settings</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">AI & Settings
+          <InfoTooltip title="Settings" text="Configure your OpenAI API key here for the AI Advisor. You can also customize asset categories, set your age/DOB for FIRE calculations, and export all your data to Excel." />
+        </h1>
         <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1">Configure your personal finance AI advisor.</p>
       </div>
 
@@ -36,12 +39,12 @@ export default function Settings() {
             </p>
             <div className="space-y-2">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">OpenAI API Key</label>
-              <input 
-                type="password" 
-                placeholder="sk-..." 
-                className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none font-mono" 
-                value={state.settings?.openaiApiKey || ''} 
-                onChange={handleKeyChange} 
+              <input
+                type="password"
+                placeholder="sk-..."
+                className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
+                value={state.settings?.openaiApiKey || ''}
+                onChange={handleKeyChange}
               />
               <p className="text-xs text-slate-400 dark:text-slate-500">Your key is synced securely to your Google Drive and never sent to any other server.</p>
             </div>
@@ -61,11 +64,11 @@ export default function Settings() {
             </p>
             <div className="space-y-2 max-w-xs">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Date of Birth</label>
-              <input 
-                type="date" 
-                className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-blue-500 outline-none" 
-                value={state.settings?.dob || ''} 
-                onChange={(e) => updateField('settings', { ...state.settings, dob: e.target.value })} 
+              <input
+                type="date"
+                className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-blue-500 outline-none"
+                value={state.settings?.dob || ''}
+                onChange={(e) => updateField('settings', { ...state.settings, dob: e.target.value })}
               />
             </div>
           </div>
@@ -82,11 +85,11 @@ export default function Settings() {
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
               Customize the types of assets available in your Accounts & Debt manager. Renaming a category will automatically update all existing assets assigned to it.
             </p>
-            
+
             <div className="flex gap-2 mb-4">
-              <input 
-                type="text" 
-                placeholder="New Asset Type..." 
+              <input
+                type="text"
+                placeholder="New Asset Type..."
                 className="flex-1 border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 focus:ring-2 focus:ring-amber-500 outline-none"
                 value={newType}
                 onChange={e => setNewType(e.target.value)}
@@ -97,7 +100,7 @@ export default function Settings() {
                   }
                 }}
               />
-              <button 
+              <button
                 onClick={() => {
                   if (newType.trim()) {
                     addAssetType(newType.trim());
@@ -115,9 +118,9 @@ export default function Settings() {
                 <div key={type} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg">
                   {editingType === type ? (
                     <div className="flex-1 flex gap-2 mr-2">
-                      <input 
+                      <input
                         autoFocus
-                        type="text" 
+                        type="text"
                         className="flex-1 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-white rounded px-2 py-1 outline-none focus:border-amber-500"
                         value={editingValue}
                         onChange={e => setEditingValue(e.target.value)}
@@ -141,7 +144,7 @@ export default function Settings() {
                   ) : (
                     <span className="font-medium text-slate-700 dark:text-slate-200">{type}</span>
                   )}
-                  
+
                   {!editingType && (
                     <div className="flex items-center gap-2">
                       <button onClick={() => {
@@ -172,7 +175,7 @@ export default function Settings() {
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
               Export your entire FinGoal OS state into a formatted Excel spreadsheet for offline analysis or safe keeping.
             </p>
-            <button 
+            <button
               onClick={() => {
                 setExporting(true);
                 try { exportToExcel(state); }

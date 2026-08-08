@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { Plus, Trash2, Edit2, CheckCircle2, AlertTriangle, XCircle, Link as LinkIcon, Info } from 'lucide-react';
+import { InfoTooltip, SectionEmptyState } from './Onboarding';
 
 export default function GoalTracker() {
   const { state, addItem, removeItem, updateItem } = useAppState();
@@ -130,7 +131,9 @@ export default function GoalTracker() {
   return (
     <div className="space-y-6 md:space-y-8 pb-20 max-w-7xl mx-auto transition-colors">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Goals Matrix</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Goals Matrix
+          <InfoTooltip title="Goals Matrix" text="Define specific financial goals — a house, car, education, or retirement. Add a target amount, date, and link your existing assets to see real progress. FinGoal will project whether you'll hit your goal on time." />
+        </h1>
         <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1">Plan, project, and achieve your financial milestones using your active assets.</p>
       </div>
 

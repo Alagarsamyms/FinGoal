@@ -10,6 +10,7 @@ import Simulation from './components/Simulation';
 import FireDashboard from './components/FireDashboard';
 import Settings from './components/Settings';
 import { initializeGoogleDriveSync } from './utils/gdrive';
+import { WelcomeBanner } from './components/Onboarding';
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
@@ -36,6 +37,9 @@ function App() {
     <AppStateProvider>
       <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
         
+        {/* Layer 1: First-visit Welcome Banner */}
+        <WelcomeBanner onNavigate={(view) => setCurrentView(view)} />
+
         {/* Mobile Header */}
         <div className="md:hidden fixed top-0 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 px-4 py-3 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { Wallet, Receipt, CreditCard, TrendingUp, Landmark, FileWarning, Percent, ShieldAlert, PiggyBank } from 'lucide-react';
+import { InfoTooltip } from './Onboarding';
 
 const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
 
@@ -68,7 +69,9 @@ export default function ExecutiveSummary() {
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Executive Summary</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Executive Summary
+            <InfoTooltip title="Command Center" text="This is your financial dashboard. It auto-calculates your Net Worth, monthly surplus, Debt-to-Income ratio, Financial Health Score, and FIRE progress — all derived from the data you enter in other sections. No manual entry needed here." />
+          </h1>
           <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1">Your financial command center at a glance.</p>
         </div>
         <div className="flex gap-3 md:gap-4 overflow-x-auto pb-2 md:pb-0">

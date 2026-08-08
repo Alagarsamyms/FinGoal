@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
 import { Flame, Target, Rocket, AlertTriangle } from 'lucide-react';
+import { InfoTooltip } from './Onboarding';
 
 export default function FireDashboard() {
   const { state } = useAppState();
@@ -157,7 +158,9 @@ export default function FireDashboard() {
   return (
     <div className="space-y-6 md:space-y-8 pb-20 max-w-7xl mx-auto transition-colors">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">The FIRE Engine</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">The FIRE Engine
+          <InfoTooltip title="FIRE Engine" text="FIRE = Financial Independence, Retire Early. This calculator shows how long it will take you to accumulate enough wealth to never need to work again. It uses the 4% safe withdrawal rule — you need 25× your annual expenses as a corpus." />
+        </h1>
         <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1">Calculate your exact Financial Independence and Retirement trajectory.</p>
       </div>
 
@@ -165,7 +168,9 @@ export default function FireDashboard() {
       <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-6 transition-colors">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-700 pb-4">
           <div>
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Projection Strategy</h2>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Projection Strategy
+              <InfoTooltip title="Projection Strategy" text="Safe Withdrawal Rate (SWR): At 4%, you can withdraw 4% of your corpus each year indefinitely. ROI is your expected annual investment return. Adjust these to see different FIRE scenarios." />
+            </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Choose which assets to include in your retirement math.</p>
           </div>
           <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-lg w-full sm:w-auto">

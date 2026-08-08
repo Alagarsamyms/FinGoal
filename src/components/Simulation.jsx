@@ -5,6 +5,7 @@ import {
   MessageSquare, ChevronDown, Activity, Flame
 } from 'lucide-react';
 import { syncChatToDrive, isSyncedToDrive } from '../utils/gdrive';
+import { InfoTooltip } from './Onboarding';
 
 const MAX_MESSAGES = 50;
 const LS_KEY = 'fingoal_chat_v1';
@@ -292,6 +293,7 @@ FORMATTING RULES (strictly follow):
           <h1 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <Sparkles size={22} className="text-indigo-500" />
             AI Advisor &amp; Simulator
+            <InfoTooltip title="AI Advisor" text="Ask your AI financial advisor anything. It already knows your income, assets, debts, and goals. Try asking: 'Am I on track for retirement?', 'Which loan should I pre-close?', or 'How can I reach ₹1 crore net worth?'" />
           </h1>
           <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Multi-turn conversation with full financial context

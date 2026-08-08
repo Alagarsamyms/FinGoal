@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { InfoTooltip, SectionEmptyState } from './Onboarding';
 
 // ─── Shared input style ───────────────────────────────────────────
 const inputCls = 'w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700/60 dark:text-white dark:placeholder-slate-400 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors';
@@ -183,7 +184,9 @@ export default function AccountsAndDebt() {
 
         {/* ── Cash Flow ─────────────────────────────────────── */}
         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
-          <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Cash Flow</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Cash Flow
+            <InfoTooltip title="Cash Flow" text="Enter your total monthly take-home income, regular living expenses, and any standalone EMIs not covered by the loan entries below. Your monthly surplus is calculated automatically." />
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             <div>
               <label className={labelCls}>Monthly Income (₹)</label>
@@ -203,7 +206,9 @@ export default function AccountsAndDebt() {
         {/* ── Liability & Debt Manager ───────────────────────── */}
         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Liability &amp; Debt Manager</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Liability &amp; Debt Manager
+              <InfoTooltip title="Debt Manager" text="Add all your outstanding loans here — home loan, car loan, personal loan, credit card dues, etc. Enter the outstanding principal, monthly EMI, and interest rate. FinGoal will rank them by interest rate to show you what to pay off first." />
+            </h2>
             <button
               onClick={() => { setShowAddLiab(v => !v); setEditingLiabId(null); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
@@ -253,9 +258,15 @@ export default function AccountsAndDebt() {
           {/* Liabilities List */}
           <div className="space-y-2">
             {state.liabilities.length === 0 && (
-              <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
-                No liabilities added yet. Click <strong>+ Add Loan</strong> to get started.
-              </div>
+              <SectionEmptyState
+                icon="🏦"
+                title="No Loans Added Yet"
+                description="Track all your debts in one place. FinGoal will automatically calculate your Debt-to-Income ratio, rank loans by interest rate, and tell you which to pay off first."
+                example="Home Loan — ₹45,00,000 at 8.5% · EMI ₹45,000"
+                ctaLabel="+ Add Your First Loan"
+                onCta={() => setShowAddLiab(true)}
+                accentColor="rose"
+              />
             )}
             {state.liabilities.map(l => (
               <div key={l.id} className="space-y-0">
@@ -339,7 +350,9 @@ export default function AccountsAndDebt() {
         {/* ── Assets Manager ────────────────────────────────── */}
         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Assets Manager</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Assets Manager
+              <InfoTooltip title="Assets Manager" text="Add everything you own that has financial value — mutual funds, stocks, gold, real estate, FDs, PPF, etc. Enter both the amount you originally invested and the current market value so FinGoal can track your real returns." />
+            </h2>
             <button
               onClick={() => { setShowAddAsset(v => !v); setEditingAssetId(null); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
@@ -396,9 +409,15 @@ export default function AccountsAndDebt() {
           {/* Assets List */}
           <div className="space-y-2">
             {state.assets.length === 0 && (
-              <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
-                No assets added yet. Click <strong>+ Add Asset</strong> to get started.
-              </div>
+              <SectionEmptyState
+                icon="💼"
+                title="No Assets Added Yet"
+                description="Add your investments and assets to see your total Net Worth, portfolio diversification, and real returns vs what you invested."
+                example="Axis Bluechip MF — Invested ₹2,00,000 · Current ₹2,64,000"
+                ctaLabel="+ Add Your First Asset"
+                onCta={() => setShowAddAsset(true)}
+                accentColor="indigo"
+              />
             )}
             {state.assets.map((a, i) => {
               const val      = parseFloat(a.currentValue ?? a.value ?? 0);
