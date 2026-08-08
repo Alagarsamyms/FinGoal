@@ -1,193 +1,516 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAppState } from '../context/AppStateContext';
-import { Plus, Trash2, Edit2, Check } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+
+// ─── Shared input style ───────────────────────────────────────────
+const inputCls = 'w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700/60 dark:text-white dark:placeholder-slate-400 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors';
+const labelCls = 'block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide';
+
+// ─── Inline Edit Panel (used for both assets & liabilities) ───────
+function InlineEditPanel({ onSave, onCancel, children, accent = 'indigo' }) {
+  const panelRef = useRef(null);
+
+  useEffect(() => {
+    // Scroll the panel into view smoothly when it mounts
+    if (panelRef.current) {
+      panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, []);
+
+  const accentMap = {
+    indigo: {
+      bg: 'bg-indigo-50 dark:bg-indigo-950/40',
+      border: 'border-indigo-200 dark:border-indigo-700',
+      save: 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600',
+      label: 'text-indigo-700 dark:text-indigo-300',
+    },
+    rose: {
+      bg: 'bg-rose-50 dark:bg-rose-950/40',
+      border: 'border-rose-200 dark:border-rose-700',
+      save: 'bg-rose-600 hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600',
+      label: 'text-rose-700 dark:text-rose-300',
+    }
+  };
+  const a = accentMap[accent];
+
+  return (
+    <div
+      ref={panelRef}
+      className={`rounded-xl border-2 ${a.border} ${a.bg} p-4 shadow-md animate-fade-in`}
+      style={{ animation: 'slideDown 0.18s ease-out' }}
+    >
+      <style>{`
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+      <div className={`text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2 ${a.label}`}>
+        <Edit2 size={12} />
+        Editing — changes will save immediately
+      </div>
+
+      {children}
+
+      {/* Action buttons */}
+      <div className="flex gap-2 mt-4 justify-end">
+        <button
+          onClick={onCancel}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+        >
+          <X size={14} /> Cancel
+        </button>
+        <button
+          onClick={onSave}
+          className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold text-white transition-colors ${a.save}`}
+        >
+          <Check size={14} /> Save Changes
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function AccountsAndDebt() {
   const { state, updateField, addItem, removeItem, updateItem } = useAppState();
-
-  const [assetName, setAssetName] = useState('');
-  const [assetInvested, setAssetInvested] = useState('');
-  const [assetCurrent, setAssetCurrent] = useState('');
-  const [assetSip, setAssetSip] = useState('');
-  const [assetRoi, setAssetRoi] = useState('');
-  
   const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Equity', 'Gold', 'Real Estate', 'Debt', 'Cash'];
-  const [assetType, setAssetType] = useState(assetTypes[0]);
+
+  // ── Asset Add form state ─────────────────────────────────────
+  const [addAsset, setAddAsset] = useState({ name: '', invested: '', current: '', sip: '', roi: '', type: assetTypes[0] });
+  const [showAddAsset, setShowAddAsset] = useState(false);
+
+  // ── Asset inline edit state (per-item) ──────────────────────
   const [editingAssetId, setEditingAssetId] = useState(null);
+  const [editAsset, setEditAsset] = useState({});
 
-  const [liabName, setLiabName] = useState('');
-  const [liabValue, setLiabValue] = useState('');
-  const [liabEmi, setLiabEmi] = useState('');
-  const [liabRate, setLiabRate] = useState('');
+  // ── Liability Add form state ─────────────────────────────────
+  const [addLiab, setAddLiab] = useState({ name: '', value: '', emi: '', rate: '' });
+  const [showAddLiab, setShowAddLiab] = useState(false);
+
+  // ── Liability inline edit state (per-item) ──────────────────
   const [editingLiabId, setEditingLiabId] = useState(null);
+  const [editLiab, setEditLiab] = useState({});
 
+  // ── Handle Add Asset ────────────────────────────────────────
   const handleAddAsset = () => {
-    if (assetName && assetCurrent) {
-      const newAsset = {
-        name: assetName,
-        type: assetType,
-        invested: parseFloat(assetInvested) || 0,
-        currentValue: parseFloat(assetCurrent) || 0,
-        sip: parseFloat(assetSip) || 0,
-        roi: parseFloat(assetRoi) || 0
-      };
-      
-      if (editingAssetId) {
-        updateItem('assets', editingAssetId, newAsset);
-        setEditingAssetId(null);
-      } else {
-        addItem('assets', newAsset);
-      }
-      setAssetName(''); setAssetInvested(''); setAssetCurrent(''); setAssetSip(''); setAssetRoi('');
-    }
+    if (!addAsset.name || !addAsset.current) return;
+    addItem('assets', {
+      name: addAsset.name,
+      type: addAsset.type,
+      invested: parseFloat(addAsset.invested) || 0,
+      currentValue: parseFloat(addAsset.current) || 0,
+      sip: parseFloat(addAsset.sip) || 0,
+      roi: parseFloat(addAsset.roi) || 0,
+    });
+    setAddAsset({ name: '', invested: '', current: '', sip: '', roi: '', type: assetTypes[0] });
+    setShowAddAsset(false);
   };
 
-  const handleEditAsset = (asset) => {
-    setAssetName(asset.name);
-    setAssetInvested(asset.invested || '');
-    setAssetCurrent(asset.currentValue || asset.value || '');
-    setAssetSip(asset.sip || '');
-    setAssetRoi(asset.roi || '');
-    setAssetType(asset.type);
-    setEditingAssetId(asset.id);
+  // ── Open inline edit for an asset ───────────────────────────
+  const openEditAsset = (a) => {
+    setEditingAssetId(a.id);
+    setEditAsset({
+      name: a.name,
+      type: a.type,
+      invested: a.invested ?? '',
+      current: a.currentValue ?? a.value ?? '',
+      sip: a.sip ?? '',
+      roi: a.roi ?? '',
+    });
+    setEditingLiabId(null); // close any open liability editor
   };
 
-  const handleAddLiability = () => {
-    if (liabName && liabValue) {
-      if (editingLiabId) {
-        updateItem('liabilities', editingLiabId, { 
-          name: liabName, 
-          value: parseFloat(liabValue), 
-          emi: parseFloat(liabEmi) || 0,
-          interest: parseFloat(liabRate) || 0
-        });
-        setEditingLiabId(null);
-      } else {
-        addItem('liabilities', { 
-          name: liabName, 
-          value: parseFloat(liabValue), 
-          emi: parseFloat(liabEmi) || 0,
-          interest: parseFloat(liabRate) || 0
-        });
-      }
-      setLiabName(''); setLiabValue(''); setLiabEmi(''); setLiabRate('');
-    }
+  const saveEditAsset = () => {
+    if (!editAsset.name || !editAsset.current) return;
+    updateItem('assets', editingAssetId, {
+      name: editAsset.name,
+      type: editAsset.type,
+      invested: parseFloat(editAsset.invested) || 0,
+      currentValue: parseFloat(editAsset.current) || 0,
+      sip: parseFloat(editAsset.sip) || 0,
+      roi: parseFloat(editAsset.roi) || 0,
+    });
+    setEditingAssetId(null);
   };
 
-  const handleEditLiability = (liab) => {
-    setLiabName(liab.name);
-    setLiabValue(liab.value);
-    setLiabEmi(liab.emi || '');
-    setLiabRate(liab.interest || '');
-    setEditingLiabId(liab.id);
+  // ── Handle Add Liability ─────────────────────────────────────
+  const handleAddLiab = () => {
+    if (!addLiab.name || !addLiab.value) return;
+    addItem('liabilities', {
+      name: addLiab.name,
+      value: parseFloat(addLiab.value),
+      emi: parseFloat(addLiab.emi) || 0,
+      interest: parseFloat(addLiab.rate) || 0,
+    });
+    setAddLiab({ name: '', value: '', emi: '', rate: '' });
+    setShowAddLiab(false);
   };
+
+  // ── Open inline edit for a liability ────────────────────────
+  const openEditLiab = (l) => {
+    setEditingLiabId(l.id);
+    setEditLiab({ name: l.name, value: l.value, emi: l.emi ?? '', rate: l.interest ?? '' });
+    setEditingAssetId(null); // close any open asset editor
+  };
+
+  const saveEditLiab = () => {
+    if (!editLiab.name || !editLiab.value) return;
+    updateItem('liabilities', editingLiabId, {
+      name: editLiab.name,
+      value: parseFloat(editLiab.value),
+      emi: parseFloat(editLiab.emi) || 0,
+      interest: parseFloat(editLiab.rate) || 0,
+    });
+    setEditingLiabId(null);
+  };
+
+  // ── Shared field component ───────────────────────────────────
+  const Field = ({ label, children }) => (
+    <div>
+      <label className={labelCls}>{label}</label>
+      {children}
+    </div>
+  );
 
   return (
     <div className="space-y-6 md:space-y-8 pb-20 max-w-7xl mx-auto transition-colors">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Accounts & Debt</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Accounts &amp; Debt</h1>
         <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1">Manage your cash flow, assets, and liabilities.</p>
       </div>
 
       <div className="space-y-4 md:space-y-6">
+
+        {/* ── Cash Flow ─────────────────────────────────────── */}
         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
           <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Cash Flow</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly Income (₹)</label>
-              <input type="number" className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none" value={state.income || ''} onChange={e => updateField('income', parseFloat(e.target.value) || 0)} />
+              <label className={labelCls}>Monthly Income (₹)</label>
+              <input type="number" className={inputCls} value={state.income || ''} onChange={e => updateField('income', parseFloat(e.target.value) || 0)} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly Expenses (₹)</label>
-              <input type="number" className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none" value={state.expenses || ''} onChange={e => updateField('expenses', parseFloat(e.target.value) || 0)} />
+              <label className={labelCls}>Monthly Expenses (₹)</label>
+              <input type="number" className={inputCls} value={state.expenses || ''} onChange={e => updateField('expenses', parseFloat(e.target.value) || 0)} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Other EMIs (₹)</label>
-              <input type="number" className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none" value={state.emi || ''} onChange={e => updateField('emi', parseFloat(e.target.value) || 0)} />
+              <label className={labelCls}>Other EMIs (₹)</label>
+              <input type="number" className={inputCls} value={state.emi || ''} onChange={e => updateField('emi', parseFloat(e.target.value) || 0)} />
             </div>
           </div>
         </div>
 
+        {/* ── Liability & Debt Manager ───────────────────────── */}
         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
-          <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Liability & Debt Manager</h2>
-          <div className="flex flex-wrap gap-3 mb-6">
-            <input type="text" placeholder="Loan Name" className="flex-1 min-w-[200px] border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 p-2 rounded-lg" value={liabName} onChange={e => setLiabName(e.target.value)} />
-            <input type="number" placeholder="Outstanding (₹)" className="w-32 border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 p-2 rounded-lg" value={liabValue} onChange={e => setLiabValue(e.target.value)} />
-            <input type="number" placeholder="EMI (₹)" className="w-32 border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 p-2 rounded-lg" value={liabEmi} onChange={e => setLiabEmi(e.target.value)} />
-            <input type="number" placeholder="Rate (%)" className="w-24 border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 p-2 rounded-lg" value={liabRate} onChange={e => setLiabRate(e.target.value)} />
-            <button onClick={handleAddLiability} className={`px-4 py-2 rounded-lg text-white ${editingLiabId ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`}>
-              {editingLiabId ? <Check size={20} /> : <Plus size={20} />}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Liability &amp; Debt Manager</h2>
+            <button
+              onClick={() => { setShowAddLiab(v => !v); setEditingLiabId(null); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                showAddLiab
+                  ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                  : 'bg-rose-600 hover:bg-rose-700 text-white'
+              }`}
+            >
+              {showAddLiab ? <><X size={14} /> Cancel</> : <><Plus size={14} /> Add Loan</>}
             </button>
           </div>
-          <div className="space-y-2">
-            {state.liabilities.map(l => (
-              <div key={l.id} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600 rounded-lg transition-colors">
-                <div>
-                  <div className="font-medium text-slate-900 dark:text-white">{l.name}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Rate: {l.interest}% | EMI: ₹{l.emi.toLocaleString('en-IN')}</div>
+
+          {/* Add Liability Form */}
+          {showAddLiab && (
+            <div className="mb-5 rounded-xl border-2 border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 p-4 shadow-md"
+              style={{ animation: 'slideDown 0.18s ease-out' }}>
+              <style>{`@keyframes slideDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }`}</style>
+              <div className="text-xs font-bold uppercase tracking-widest mb-3 text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                <Plus size={12} /> New Loan / Liability
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="col-span-2 sm:col-span-2">
+                  <Field label="Loan Name">
+                    <input type="text" placeholder="e.g. Home Loan" className={inputCls} value={addLiab.name} onChange={e => setAddLiab(p => ({ ...p, name: e.target.value }))} />
+                  </Field>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="font-semibold text-rose-600 dark:text-rose-500">₹{l.value.toLocaleString('en-IN')}</span>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => handleEditLiability(l)} className="text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400"><Edit2 size={16} /></button>
-                    <button onClick={() => removeItem('liabilities', l.id)} className="text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400"><Trash2 size={16} /></button>
+                <Field label="Outstanding (₹)">
+                  <input type="number" placeholder="0" className={inputCls} value={addLiab.value} onChange={e => setAddLiab(p => ({ ...p, value: e.target.value }))} />
+                </Field>
+                <Field label="EMI (₹)">
+                  <input type="number" placeholder="0" className={inputCls} value={addLiab.emi} onChange={e => setAddLiab(p => ({ ...p, emi: e.target.value }))} />
+                </Field>
+                <div className="col-span-2 sm:col-span-1">
+                  <Field label="Interest Rate (%)">
+                    <input type="number" placeholder="0.00" className={inputCls} value={addLiab.rate} onChange={e => setAddLiab(p => ({ ...p, rate: e.target.value }))} />
+                  </Field>
+                </div>
+              </div>
+              <div className="flex justify-end mt-4">
+                <button onClick={handleAddLiab} className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 transition-colors">
+                  <Plus size={14} /> Add Loan
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Liabilities List */}
+          <div className="space-y-2">
+            {state.liabilities.length === 0 && (
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+                No liabilities added yet. Click <strong>+ Add Loan</strong> to get started.
+              </div>
+            )}
+            {state.liabilities.map(l => (
+              <div key={l.id} className="space-y-0">
+                {/* Row */}
+                <div className={`flex justify-between items-center px-3 sm:px-4 py-3 rounded-xl border transition-colors ${
+                  editingLiabId === l.id
+                    ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-600 rounded-b-none border-b-0'
+                    : 'bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-slate-900 dark:text-white truncate">{l.name}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex flex-wrap gap-2">
+                      <span>Rate: <strong>{l.interest}%</strong></span>
+                      <span>EMI: <strong>₹{Number(l.emi).toLocaleString('en-IN')}</strong></span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 ml-3 flex-shrink-0">
+                    <span className="font-bold text-rose-600 dark:text-rose-400 text-sm sm:text-base">
+                      ₹{Number(l.value).toLocaleString('en-IN')}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => editingLiabId === l.id ? setEditingLiabId(null) : openEditLiab(l)}
+                        title={editingLiabId === l.id ? 'Close editor' : 'Edit'}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          editingLiabId === l.id
+                            ? 'bg-rose-200 dark:bg-rose-800 text-rose-700 dark:text-rose-300'
+                            : 'text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-600'
+                        }`}
+                      >
+                        {editingLiabId === l.id ? <ChevronUp size={15} /> : <Edit2 size={15} />}
+                      </button>
+                      <button
+                        onClick={() => { if (window.confirm(`Delete "${l.name}"?`)) removeItem('liabilities', l.id); }}
+                        title="Delete"
+                        className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
                 </div>
+
+                {/* Inline Edit Panel — directly below the row */}
+                {editingLiabId === l.id && (
+                  <div className="border-2 border-rose-300 dark:border-rose-600 border-t-0 rounded-b-xl bg-rose-50 dark:bg-rose-950/40 px-4 pb-4 pt-3"
+                    style={{ animation: 'slideDown 0.18s ease-out' }}>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                      <div className="col-span-2">
+                        <Field label="Loan Name">
+                          <input autoFocus type="text" className={inputCls} value={editLiab.name} onChange={e => setEditLiab(p => ({ ...p, name: e.target.value }))} />
+                        </Field>
+                      </div>
+                      <Field label="Outstanding (₹)">
+                        <input type="number" className={inputCls} value={editLiab.value} onChange={e => setEditLiab(p => ({ ...p, value: e.target.value }))} />
+                      </Field>
+                      <Field label="EMI (₹)">
+                        <input type="number" className={inputCls} value={editLiab.emi} onChange={e => setEditLiab(p => ({ ...p, emi: e.target.value }))} />
+                      </Field>
+                      <div className="col-span-2 sm:col-span-1">
+                        <Field label="Interest Rate (%)">
+                          <input type="number" className={inputCls} value={editLiab.rate} onChange={e => setEditLiab(p => ({ ...p, rate: e.target.value }))} />
+                        </Field>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setEditingLiabId(null)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">
+                        <X size={13} /> Cancel
+                      </button>
+                      <button onClick={saveEditLiab} className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 transition-colors">
+                        <Check size={13} /> Save Changes
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
-            {state.liabilities.length === 0 && <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No liabilities added.</div>}
           </div>
         </div>
 
+        {/* ── Assets Manager ────────────────────────────────── */}
         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
-          <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Assets Manager</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <input type="text" placeholder="Asset Name" className="border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 p-2 rounded-lg col-span-2 md:col-span-1" value={assetName} onChange={e => setAssetName(e.target.value)} />
-            <select className="border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white p-2 rounded-lg col-span-2 md:col-span-1" value={assetType} onChange={e => setAssetType(e.target.value)}>
-              {assetTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-            <input type="number" placeholder="Invested (₹)" className="border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 p-2 rounded-lg" value={assetInvested} onChange={e => setAssetInvested(e.target.value)} />
-            <input type="number" placeholder="Current Value (₹)" className="border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 p-2 rounded-lg" value={assetCurrent} onChange={e => setAssetCurrent(e.target.value)} />
-            <input type="number" placeholder="Monthly SIP (₹)" className="border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 p-2 rounded-lg" value={assetSip} onChange={e => setAssetSip(e.target.value)} />
-            <input type="number" placeholder="Exp. ROI (%)" className="border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 p-2 rounded-lg" value={assetRoi} onChange={e => setAssetRoi(e.target.value)} />
-            <button onClick={handleAddAsset} className={`px-4 py-2 col-span-2 rounded-lg text-white font-medium ${editingAssetId ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
-              {editingAssetId ? 'Update Asset' : 'Add Asset'}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Assets Manager</h2>
+            <button
+              onClick={() => { setShowAddAsset(v => !v); setEditingAssetId(null); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                showAddAsset
+                  ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              }`}
+            >
+              {showAddAsset ? <><X size={14} /> Cancel</> : <><Plus size={14} /> Add Asset</>}
             </button>
           </div>
-          <div className="space-y-2">
-            {state.assets.map(a => {
-              const val = a.currentValue || a.value || 0;
-              return (
-                <div key={a.id} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600 rounded-lg transition-colors">
-                  <div>
-                    <div className="font-medium text-slate-900 dark:text-white">{a.name}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 flex gap-3 mt-1">
-                      <span>Type: {a.type}</span>
-                      {a.sip > 0 && <span>SIP: ₹{a.sip.toLocaleString('en-IN')}</span>}
-                      {a.roi > 0 && <span>ROI: {a.roi}%</span>}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <span className="font-bold text-emerald-600 dark:text-emerald-500 block">₹{val.toLocaleString('en-IN')}</span>
-                      {a.invested > 0 && <span className="text-[10px] text-slate-400 dark:text-slate-500">Inv: ₹{a.invested.toLocaleString('en-IN')}</span>}
-                    </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => handleEditAsset(a)} className="text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400"><Edit2 size={16} /></button>
-                    <button onClick={() => removeItem('assets', a.id)} className="text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400"><Trash2 size={16} /></button>
-                  </div>
-                </div>
+
+          {/* Add Asset Form */}
+          {showAddAsset && (
+            <div className="mb-5 rounded-xl border-2 border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950/40 p-4 shadow-md"
+              style={{ animation: 'slideDown 0.18s ease-out' }}>
+              <div className="text-xs font-bold uppercase tracking-widest mb-3 text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
+                <Plus size={12} /> New Asset
               </div>
-            );
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                <div className="col-span-2 sm:col-span-2">
+                  <Field label="Asset Name">
+                    <input type="text" placeholder="e.g. Axis Bluechip" className={inputCls} value={addAsset.name} onChange={e => setAddAsset(p => ({ ...p, name: e.target.value }))} />
+                  </Field>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <Field label="Asset Type">
+                    <select className={inputCls} value={addAsset.type} onChange={e => setAddAsset(p => ({ ...p, type: e.target.value }))}>
+                      {assetTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </Field>
+                </div>
+                <Field label="Invested (₹)">
+                  <input type="number" placeholder="0" className={inputCls} value={addAsset.invested} onChange={e => setAddAsset(p => ({ ...p, invested: e.target.value }))} />
+                </Field>
+                <Field label="Current Value (₹)">
+                  <input type="number" placeholder="0" className={inputCls} value={addAsset.current} onChange={e => setAddAsset(p => ({ ...p, current: e.target.value }))} />
+                </Field>
+                <Field label="Monthly SIP (₹)">
+                  <input type="number" placeholder="0" className={inputCls} value={addAsset.sip} onChange={e => setAddAsset(p => ({ ...p, sip: e.target.value }))} />
+                </Field>
+                <Field label="Exp. ROI (%)">
+                  <input type="number" placeholder="12" className={inputCls} value={addAsset.roi} onChange={e => setAddAsset(p => ({ ...p, roi: e.target.value }))} />
+                </Field>
+              </div>
+              <div className="flex justify-end mt-4">
+                <button onClick={handleAddAsset} className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
+                  <Plus size={14} /> Add Asset
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Assets List */}
+          <div className="space-y-2">
+            {state.assets.length === 0 && (
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+                No assets added yet. Click <strong>+ Add Asset</strong> to get started.
+              </div>
+            )}
+            {state.assets.map((a, i) => {
+              const val      = parseFloat(a.currentValue ?? a.value ?? 0);
+              const invested = parseFloat(a.invested ?? 0);
+              const gainLoss = val - invested;
+              const gainPct  = invested > 0 ? ((gainLoss / invested) * 100).toFixed(1) : null;
+              const isEditing = editingAssetId === a.id;
+
+              return (
+                <div key={a.id} className="space-y-0">
+                  {/* Row */}
+                  <div className={`flex justify-between items-center px-3 sm:px-4 py-3 rounded-xl border transition-colors ${
+                    isEditing
+                      ? 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-600 rounded-b-none border-b-0'
+                      : 'bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-slate-900 dark:text-white truncate">{a.name}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex flex-wrap gap-2">
+                        <span className="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded text-[10px] font-medium">{a.type}</span>
+                        {a.sip > 0 && <span>SIP: ₹{Number(a.sip).toLocaleString('en-IN')}</span>}
+                        {a.roi > 0 && <span>ROI: {a.roi}%</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 ml-3 flex-shrink-0">
+                      <div className="text-right">
+                        <div className="font-bold text-emerald-600 dark:text-emerald-400 text-sm sm:text-base">
+                          ₹{val.toLocaleString('en-IN')}
+                        </div>
+                        {gainPct !== null && (
+                          <div className={`text-[10px] font-semibold ${gainLoss >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            {gainLoss >= 0 ? '+' : ''}{gainPct}%
+                          </div>
+                        )}
+                        {invested > 0 && (
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500">
+                            Inv: ₹{invested.toLocaleString('en-IN')}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => isEditing ? setEditingAssetId(null) : openEditAsset(a)}
+                          title={isEditing ? 'Close editor' : 'Edit'}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            isEditing
+                              ? 'bg-indigo-200 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-300'
+                              : 'text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-600'
+                          }`}
+                        >
+                          {isEditing ? <ChevronUp size={15} /> : <Edit2 size={15} />}
+                        </button>
+                        <button
+                          onClick={() => { if (window.confirm(`Delete "${a.name}"?`)) removeItem('assets', a.id); }}
+                          title="Delete"
+                          className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Inline Edit Panel — directly below the row, no scroll needed */}
+                  {isEditing && (
+                    <div
+                      className="border-2 border-indigo-300 dark:border-indigo-600 border-t-0 rounded-b-xl bg-indigo-50 dark:bg-indigo-950/40 px-4 pb-4 pt-3"
+                      style={{ animation: 'slideDown 0.18s ease-out' }}
+                    >
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4">
+                        <div className="col-span-2">
+                          <Field label="Asset Name">
+                            <input autoFocus type="text" className={inputCls} value={editAsset.name} onChange={e => setEditAsset(p => ({ ...p, name: e.target.value }))} />
+                          </Field>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                          <Field label="Asset Type">
+                            <select className={inputCls} value={editAsset.type} onChange={e => setEditAsset(p => ({ ...p, type: e.target.value }))}>
+                              {assetTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                          </Field>
+                        </div>
+                        <Field label="Invested (₹)">
+                          <input type="number" className={inputCls} value={editAsset.invested} onChange={e => setEditAsset(p => ({ ...p, invested: e.target.value }))} />
+                        </Field>
+                        <Field label="Current Value (₹)">
+                          <input type="number" className={inputCls} value={editAsset.current} onChange={e => setEditAsset(p => ({ ...p, current: e.target.value }))} />
+                        </Field>
+                        <Field label="Monthly SIP (₹)">
+                          <input type="number" className={inputCls} value={editAsset.sip} onChange={e => setEditAsset(p => ({ ...p, sip: e.target.value }))} />
+                        </Field>
+                        <Field label="Exp. ROI (%)">
+                          <input type="number" className={inputCls} value={editAsset.roi} onChange={e => setEditAsset(p => ({ ...p, roi: e.target.value }))} />
+                        </Field>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setEditingAssetId(null)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">
+                          <X size={13} /> Cancel
+                        </button>
+                        <button onClick={saveEditAsset} className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
+                          <Check size={13} /> Save Changes
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
             })}
-            {state.assets.length === 0 && <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No assets added.</div>}
           </div>
         </div>
+
       </div>
-
-
     </div>
   );
 }

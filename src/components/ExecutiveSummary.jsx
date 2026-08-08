@@ -26,23 +26,43 @@ export default function ExecutiveSummary() {
   const dti = totalIncome > 0 ? (totalEmi / totalIncome) * 100 : 0;
 
   // Financial Health Score Algorithm (0-100)
-  let healthScore = 100;
-  // Penalty for high DTI
-  if (dti > 40) healthScore -= 30;
-  else if (dti > 30) healthScore -= 15;
-  else if (dti > 20) healthScore -= 5;
-  // Penalty for low savings rate
-  const savingsRate = totalIncome > 0 ? (surplus / totalIncome) * 100 : 0;
-  if (savingsRate < 10) healthScore -= 30;
-  else if (savingsRate < 20) healthScore -= 15;
-  // Penalty for no emergency fund
   const emergencyTarget = parseFloat(state.protection.emergencyTarget) || 0;
   const emergencyCurrent = parseFloat(state.protection.emergencyCurrent) || 0;
-  if (emergencyTarget > 0 && emergencyCurrent < emergencyTarget * 0.5) healthScore -= 20;
-  else if (emergencyTarget > 0 && emergencyCurrent < emergencyTarget) healthScore -= 10;
-  else if (emergencyTarget === 0) healthScore -= 20;
+  const savingsRate = totalIncome > 0 ? (surplus / totalIncome) * 100 : 0;
+
+  // Detect if any financial data has been entered at all
+  const hasData = totalIncome > 0 || state.assets.length > 0 || state.liabilities.length > 0;
+
+  let healthScore = 0;
+  if (hasData) {
+    healthScore = 100;
+    // Penalty for high DTI (only meaningful when income > 0)
+    if (totalIncome > 0) {
+      if (dti > 40) healthScore -= 30;
+      else if (dti > 30) healthScore -= 15;
+      else if (dti > 20) healthScore -= 5;
+    }
+    // Penalty for low savings rate (only when income > 0)
+    if (totalIncome > 0) {
+      if (savingsRate < 10) healthScore -= 30;
+      else if (savingsRate < 20) healthScore -= 15;
+    } else {
+      // No income entered but has assets/liabilities – mild penalty
+      healthScore -= 15;
+    }
+    // Penalty for no / low emergency fund
+    if (emergencyTarget > 0 && emergencyCurrent < emergencyTarget * 0.5) healthScore -= 20;
+    else if (emergencyTarget > 0 && emergencyCurrent < emergencyTarget) healthScore -= 10;
+    else if (emergencyTarget === 0) healthScore -= 10; // smaller penalty – may be intentional
+  }
 
   healthScore = Math.max(0, Math.min(100, healthScore)); // clamp
+
+  const healthLabel =
+    !hasData ? 'No Data' :
+    healthScore >= 80 ? 'Excellent' :
+    healthScore >= 60 ? 'Good' :
+    healthScore >= 40 ? 'Needs Work' : 'Critical';
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -55,9 +75,15 @@ export default function ExecutiveSummary() {
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm px-4 md:px-6 py-3 md:py-4 rounded-xl flex flex-col items-center justify-center min-w-[120px] transition-colors">
             <span className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Health Score</span>
             <div className="flex items-baseline gap-1">
-              <span className={`text-2xl md:text-3xl font-bold ${healthScore >= 80 ? 'text-emerald-500' : healthScore >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>{healthScore}</span>
+              <span className={`text-2xl md:text-3xl font-bold ${healthScore >= 80 ? 'text-emerald-500' : healthScore >= 60 ? 'text-amber-500' : healthScore >= 40 ? 'text-orange-500' : 'text-rose-500'}`}>{healthScore}</span>
               <span className="text-slate-400 dark:text-slate-500 font-medium text-sm md:text-base">/100</span>
             </div>
+            <span className={`text-[10px] md:text-xs font-semibold uppercase tracking-wider mt-0.5 ${
+              !hasData ? 'text-slate-400 dark:text-slate-500' :
+              healthScore >= 80 ? 'text-emerald-500' :
+              healthScore >= 60 ? 'text-amber-500' :
+              healthScore >= 40 ? 'text-orange-500' : 'text-rose-500'
+            }`}>{healthLabel}</span>
           </div>
           <div className="gradient-card px-6 md:px-8 py-3 md:py-4 rounded-xl flex flex-col justify-center min-w-[160px]">
             <span className="text-xs md:text-sm font-medium text-indigo-100 uppercase tracking-wider mb-1">Net Worth</span>
