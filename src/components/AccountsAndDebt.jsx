@@ -71,6 +71,14 @@ function InlineEditPanel({ onSave, onCancel, children, accent = 'indigo' }) {
   );
 }
 
+// ─── Shared field component ───────────────────────────────────
+const Field = ({ label, children }) => (
+  <div>
+    <label className={labelCls}>{label}</label>
+    {children}
+  </div>
+);
+
 export default function AccountsAndDebt() {
   const { state, updateField, addItem, removeItem, updateItem } = useAppState();
   const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Equity', 'Gold', 'Real Estate', 'Debt', 'Cash'];
@@ -163,14 +171,6 @@ export default function AccountsAndDebt() {
     });
     setEditingLiabId(null);
   };
-
-  // ── Shared field component ───────────────────────────────────
-  const Field = ({ label, children }) => (
-    <div>
-      <label className={labelCls}>{label}</label>
-      {children}
-    </div>
-  );
 
   return (
     <div className="space-y-6 md:space-y-8 pb-20 max-w-7xl mx-auto transition-colors">
