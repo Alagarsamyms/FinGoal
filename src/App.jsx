@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Menu, PieChart } from 'lucide-react';
 import { AppStateProvider } from './context/AppStateContext';
+import { AuthProvider } from './context/AuthContext';
 import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
 import AccountsAndDebt from './components/AccountsAndDebt';
@@ -34,35 +35,37 @@ function App() {
   };
 
   return (
-    <AppStateProvider>
-      <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
-        
-        {/* Layer 1: First-visit Welcome Banner */}
-        <WelcomeBanner onNavigate={(view) => setCurrentView(view)} />
+    <AuthProvider>
+      <AppStateProvider>
+        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
 
-        {/* Mobile Header */}
-        <div className="md:hidden fixed top-0 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 px-4 py-3 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-             <PieChart size={24} /> 
-             <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">FinGoal OS</span>
+          {/* Layer 1: First-visit Welcome Banner */}
+          <WelcomeBanner onNavigate={(view) => setCurrentView(view)} />
+
+          {/* Mobile Header */}
+          <div className="md:hidden fixed top-0 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 px-4 py-3 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+               <PieChart size={24} />
+               <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">FinGoal OS</span>
+            </div>
+            <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+              <Menu size={24} />
+            </button>
           </div>
-          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
-            <Menu size={24} />
-          </button>
-        </div>
 
-        <Sidebar 
-          currentView={currentView} 
-          setCurrentView={setCurrentView}
-          isMobileOpen={isMobileMenuOpen}
-          setIsMobileOpen={setIsMobileMenuOpen}
-        />
-        
-        <main className="flex-1 p-4 md:p-8 ml-0 md:ml-64 mt-14 md:mt-0 max-w-[100vw] overflow-x-hidden">
-          {renderView()}
-        </main>
-      </div>
-    </AppStateProvider>
+          <Sidebar
+            currentView={currentView}
+            setCurrentView={setCurrentView}
+            isMobileOpen={isMobileMenuOpen}
+            setIsMobileOpen={setIsMobileMenuOpen}
+          />
+
+          <main className="flex-1 p-4 md:p-8 ml-0 md:ml-64 mt-14 md:mt-0 max-w-[100vw] overflow-x-hidden">
+            {renderView()}
+          </main>
+        </div>
+      </AppStateProvider>
+    </AuthProvider>
   );
 }
 

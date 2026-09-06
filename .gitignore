@@ -22,3 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ─── SECRETS — NEVER COMMIT THESE ───────────────────────────────────────────
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+
+# Supabase local dev
+supabase/.branches
+supabase/.temp
