@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
+import { identifyUser, resetUser, trackEvent } from '../utils/telemetry';
 
 const AuthContext = createContext(null);
 
@@ -27,13 +28,26 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        identifyUser(session.user.id, session.user.email);
+        trackEvent('app_opened', { auth_status: 'signed_in' });
+      } else {
+        trackEvent('app_opened', { auth_status: 'guest' });
+      }
       setLoading(false);
     });
 
     // Listen for auth state changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (event === 'SIGNED_IN' && session?.user) {
+        identifyUser(session.user.id, session.user.email);
+        trackEvent('login_completed', { provider: session.user.app_metadata?.provider || 'email' });
+      } else if (event === 'SIGNED_OUT') {
+        resetUser();
+        trackEvent('logout_completed');
+      }
       setLoading(false);
     });
 
@@ -44,6 +58,7 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+    resetUser();
   };
 
   const value = {

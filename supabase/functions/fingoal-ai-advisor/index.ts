@@ -43,7 +43,30 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── 2. Parse request body ─────────────────────────────────────────────
+    // ── 2. Rate Limiting: Max 20 AI prompts per hour per user ─────────────
+    const MAX_PROMPTS_PER_HOUR = 20;
+    const { data: convData } = await supabase
+      .from('ai_conversations')
+      .select('messages, updated_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (convData?.messages && Array.isArray(convData.messages)) {
+      const oneHourAgo = Date.now() - 60 * 60 * 1000;
+      const userMsgsLastHour = convData.messages.filter((m: any) =>
+        m.role === 'user' && m.timestamp && (new Date(m.timestamp).getTime() > oneHourAgo || typeof m.timestamp === 'number' && m.timestamp > oneHourAgo)
+      );
+
+      if (userMsgsLastHour.length >= MAX_PROMPTS_PER_HOUR) {
+        return new Response(JSON.stringify({
+          error: `Rate limit reached (${MAX_PROMPTS_PER_HOUR} AI requests/hour). Please wait a while before asking more questions to allow server resources to reset.`
+        }), {
+          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // ── 3. Parse request body ─────────────────────────────────────────────
     const body = await req.json();
     const { messages = [], financialContext = {} } = body;
 

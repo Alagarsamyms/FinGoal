@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { syncChatToDrive, isSyncedToDrive } from '../utils/gdrive';
 import { InfoTooltip } from './Onboarding';
+import { trackEvent, captureError } from '../utils/telemetry';
 
 const MAX_MESSAGES = 50;
 const LS_KEY = 'fingoal_chat_v1';
@@ -397,6 +398,7 @@ FORMATTING RULES (strictly follow):
         timestamp: Date.now()
       };
       setMessages(prev => [...prev.slice(-MAX_MESSAGES + 1), aiReply]);
+      trackEvent('ai_advisor_used');
     } catch (err) {
       let errorContent;
 
