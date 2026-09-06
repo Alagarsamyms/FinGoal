@@ -11,6 +11,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB
+      },
       manifest: {
         name: 'Wealth For FIRE',
         short_name: 'Wealth For FIRE',

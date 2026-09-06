@@ -10,6 +10,7 @@ import Protection from './components/Protection';
 import Simulation from './components/Simulation';
 import FireDashboard from './components/FireDashboard';
 import Settings from './components/Settings';
+import LegalPage from './components/LegalPage';
 import { initializeGoogleDriveSync } from './utils/gdrive';
 import { WelcomeBanner } from './components/Onboarding';
 
@@ -29,7 +30,8 @@ function App() {
       case 'fire': return <FireDashboard />;
       case 'protection': return <Protection />;
       case 'simulation': return <Simulation />;
-      case 'settings': return <Settings />;
+      case 'settings': return <Settings setCurrentView={setCurrentView} />;
+      case 'legal': return <LegalPage />;
       default: return <Dashboard />;
     }
   };

@@ -5,12 +5,12 @@ import { exportToExcel } from '../utils/exportExcel';
 import { supabase } from '../utils/supabase';
 import {
   Download, Database, Layers, Plus, Edit2, Trash2, Check, X,
-  User, Loader2, LogOut, ShieldCheck, AlertTriangle, CheckCircle2
+  User, Loader2, LogOut, ShieldCheck, AlertTriangle, CheckCircle2, FileText, ExternalLink
 } from 'lucide-react';
 import { InfoTooltip } from './Onboarding';
 import AuthModal from './AuthModal';
 
-export default function Settings() {
+export default function Settings({ setCurrentView }) {
   const { state, updateField, addAssetType, removeAssetType, renameAssetType } = useAppState();
   const { user, signOut, isGuest } = useAuth();
 
@@ -279,6 +279,27 @@ export default function Settings() {
           </button>
         </div>
       )}
+
+      {/* ── Legal ───────────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+        <div className="flex flex-col sm:flex-row items-start gap-4">
+          <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+            <FileText size={24} />
+          </div>
+          <div className="flex-1 w-full">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Privacy & Legal</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
+              Read our Privacy Policy, Terms of Service, and financial disclaimer for Wealth For FIRE.
+            </p>
+            <button
+              onClick={() => setCurrentView && setCurrentView('legal')}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors"
+            >
+              <ShieldCheck size={16} /> View Privacy Policy & Terms
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Auth Modal */}
       {showAuth && (
