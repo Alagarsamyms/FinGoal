@@ -12,8 +12,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'FinGoal Personal OS',
-        short_name: 'FinGoal',
+        name: 'Wealth For FIRE',
+        short_name: 'Wealth For FIRE',
         description: 'Your Personal Finance Operating System',
         theme_color: '#4F46E5',
         background_color: '#f8fafc',

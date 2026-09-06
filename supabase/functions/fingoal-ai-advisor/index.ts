@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
       currentAge = null,
     } = financialContext;
 
-    const systemPrompt = `You are FinGoal AI, an expert personal finance advisor embedded in FinGoal OS.
+    const systemPrompt = `You are Wealth For FIRE AI, an expert personal finance advisor embedded in Wealth For FIRE.
 You deliver highly structured, clear, and visually appealing financial analysis tailored to Indian personal finance.
 
 Current Financial Snapshot:

@@ -207,7 +207,7 @@ export default function AccountsAndDebt() {
         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Liability &amp; Debt Manager
-              <InfoTooltip title="Debt Manager" text="Add all your outstanding loans here — home loan, car loan, personal loan, credit card dues, etc. Enter the outstanding principal, monthly EMI, and interest rate. FinGoal will rank them by interest rate to show you what to pay off first." />
+              <InfoTooltip title="Debt Manager" text="Add all your outstanding loans here — home loan, car loan, personal loan, credit card dues, etc. Enter the outstanding principal, monthly EMI, and interest rate. Wealth For FIRE will rank them by interest rate to show you what to pay off first." />
             </h2>
             <button
               onClick={() => { setShowAddLiab(v => !v); setEditingLiabId(null); }}
@@ -261,7 +261,7 @@ export default function AccountsAndDebt() {
               <SectionEmptyState
                 icon="🏦"
                 title="No Loans Added Yet"
-                description="Track all your debts in one place. FinGoal will automatically calculate your Debt-to-Income ratio, rank loans by interest rate, and tell you which to pay off first."
+                description="Track all your debts in one place. Wealth For FIRE will automatically calculate your Debt-to-Income ratio, rank loans by interest rate, and tell you which to pay off first."
                 example="Home Loan — ₹45,00,000 at 8.5% · EMI ₹45,000"
                 ctaLabel="+ Add Your First Loan"
                 onCta={() => setShowAddLiab(true)}
@@ -351,7 +351,7 @@ export default function AccountsAndDebt() {
         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Assets Manager
-              <InfoTooltip title="Assets Manager" text="Add everything you own that has financial value — mutual funds, stocks, gold, real estate, FDs, PPF, etc. Enter both the amount you originally invested and the current market value so FinGoal can track your real returns." />
+              <InfoTooltip title="Assets Manager" text="Add everything you own that has financial value — mutual funds, stocks, gold, real estate, FDs, PPF, etc. Enter both the amount you originally invested and the current market value so Wealth For FIRE can track your real returns." />
             </h2>
             <button
               onClick={() => { setShowAddAsset(v => !v); setEditingAssetId(null); }}

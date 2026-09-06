@@ -162,7 +162,7 @@ export default function Simulation() {
   const totalAssets = state.assets.reduce((s, a) => s + (parseFloat(a.currentValue ?? a.value) || 0), 0);
   const totalDebt = state.liabilities.reduce((s, l) => s + (parseFloat(l.value) || 0), 0);
 
-  const systemPrompt = `You are FinGoal AI, an elite financial advisor specializing in the Indian personal finance market.
+  const systemPrompt = `You are Wealth For FIRE AI, an elite financial advisor specializing in the Indian personal finance market.
 
 The user's current financial snapshot:
 - Monthly Income: ₹${totalIncome.toLocaleString('en-IN')}
@@ -190,13 +190,13 @@ FORMATTING RULES (strictly follow):
       setMessages([{
         role: 'assistant',
         content: isLoggedIn
-          ? `<p>\ud83d\udc4b <strong>Welcome back to FinGoal AI Advisor!</strong></p>
+          ? `<p>\ud83d\udc4b <strong>Welcome back to Wealth For FIRE AI Advisor!</strong></p>
 <p>Your chat history is synced to the cloud. I have full context of your financial data \u2014 assets, liabilities, goals, and cash flow.</p>
 <ul>
   <li>Use the <strong>Quick Prompt</strong> chips below for instant analysis</li>
   <li>Or type your own question \u2014 I support follow-up questions too!</li>
 </ul>`
-          : `<p>\ud83d\udc4b <strong>Welcome to FinGoal AI Advisor!</strong></p>
+          : `<p>\ud83d\udc4b <strong>Welcome to Wealth For FIRE AI Advisor!</strong></p>
 <p>I have full context of your financial data \u2014 assets, liabilities, goals, and cash flow. Ask me anything:</p>
 <ul>
   <li>Use the <strong>Quick Prompt</strong> chips below for instant analysis</li>

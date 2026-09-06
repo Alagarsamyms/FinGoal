@@ -47,7 +47,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
         <div className="flex items-center justify-between mb-8 text-indigo-600 dark:text-indigo-400">
           <div className="flex items-center gap-3">
             <PieChart size={28} />
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">FinGoal OS</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Wealth For FIRE</h2>
           </div>
           <button onClick={() => setIsMobileOpen(false)} className="md:hidden text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
             <X size={24} />

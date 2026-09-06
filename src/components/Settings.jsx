@@ -242,7 +242,7 @@ export default function Settings() {
           <div className="flex-1 w-full">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Data & Backups</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
-              Export your entire FinGoal OS state into a formatted Excel spreadsheet for offline analysis or safe keeping.
+              Export your entire Wealth For FIRE state into a formatted Excel spreadsheet for offline analysis or safe keeping.
             </p>
             <button
               onClick={() => {

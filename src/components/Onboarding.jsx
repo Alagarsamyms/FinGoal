@@ -165,7 +165,7 @@ export function WelcomeBanner({ onNavigate }) {
             <X size={16} />
           </button>
           <div className="text-3xl mb-1">👋</div>
-          <h2 className="text-xl font-bold">Welcome to FinGoal OS</h2>
+          <h2 className="text-xl font-bold">Welcome to Wealth For FIRE</h2>
           <p className="text-indigo-200 text-sm mt-0.5">Your personal finance operating system</p>
         </div>
 
