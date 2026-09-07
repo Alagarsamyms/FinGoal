@@ -3,6 +3,8 @@ import { useAppState } from '../context/AppStateContext';
 import { Plus, Trash2, Edit2, CheckCircle2, AlertTriangle, XCircle, Link as LinkIcon, Info } from 'lucide-react';
 import { InfoTooltip, SectionEmptyState } from './Onboarding';
 
+const getErrCls = (attempted, val) => attempted && !val ? '!border-rose-500 !ring-1 !ring-rose-500 !bg-rose-50 dark:!bg-rose-900/20' : '';
+
 export default function GoalTracker() {
   const { state, addItem, removeItem, updateItem } = useAppState();
 
@@ -14,9 +16,12 @@ export default function GoalTracker() {
   const [targetDate, setTargetDate] = useState('');
   const [linkedAssets, setLinkedAssets] = useState([]);
   const [editingGoalId, setEditingGoalId] = useState(null);
+  const [formAttempted, setFormAttempted] = useState(false);
 
   const handleAddGoal = () => {
+    setFormAttempted(true);
     if (name && target) {
+      setFormAttempted(false);
       const goalData = {
         name,
         target: parseFloat(target),
@@ -50,7 +55,7 @@ export default function GoalTracker() {
   };
 
   const resetForm = () => {
-    setName(''); setTarget(''); setSaved(''); setContribution(''); setRoi('12'); setTargetDate(''); setLinkedAssets([]); setEditingGoalId(null);
+    setName(''); setTarget(''); setSaved(''); setContribution(''); setRoi('12'); setTargetDate(''); setLinkedAssets([]); setEditingGoalId(null); setFormAttempted(false);
   };
 
   const getAvailableAllocation = (assetId) => {
@@ -146,11 +151,11 @@ export default function GoalTracker() {
         <div className="flex flex-wrap gap-3 sm:gap-4 items-end mb-6">
           <div className="flex-1 min-w-[200px]">
             <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Goal Name</label>
-            <input type="text" className="w-full border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white p-2 rounded-lg" value={name} onChange={e => setName(e.target.value)} />
+            <input type="text" className={`w-full border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white p-2 rounded-lg ${getErrCls(formAttempted, name)}`} value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div className="w-32">
             <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Target (₹)</label>
-            <input type="number" className="w-full border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white p-2 rounded-lg" value={target} onChange={e => setTarget(e.target.value)} />
+            <input type="number" className={`w-full border border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white p-2 rounded-lg ${getErrCls(formAttempted, target)}`} value={target} onChange={e => setTarget(e.target.value)} />
           </div>
           <div className="w-40">
             <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Target Date</label>
@@ -248,9 +253,21 @@ export default function GoalTracker() {
           </>
         )}
 
-        <button onClick={handleAddGoal} className={`px-6 py-2 rounded-lg text-white font-medium ${editingGoalId ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
-          {editingGoalId ? 'Update Goal' : 'Save Goal'}
-        </button>
+        <div className="flex justify-between items-center mt-2">
+          {formAttempted && (!name || !target) ? (
+            <span className="text-xs text-rose-500 font-medium">Please fill in Goal Name and Target amount.</span>
+          ) : <div />}
+          <div className="flex gap-2">
+            {editingGoalId && (
+              <button onClick={resetForm} className="px-6 py-2 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition-colors">
+                Cancel
+              </button>
+            )}
+            <button onClick={handleAddGoal} className={`px-6 py-2 rounded-lg text-sm text-white font-semibold transition-colors ${editingGoalId ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
+              {editingGoalId ? 'Update Goal' : 'Save Goal'}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-4">

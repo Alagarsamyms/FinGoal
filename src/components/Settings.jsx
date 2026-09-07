@@ -21,7 +21,7 @@ export default function Settings({ setCurrentView }) {
   const [showAuth, setShowAuth] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
-  const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Equity', 'Gold', 'Real Estate', 'Debt', 'Cash'];
+  const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Equity', 'EPF', 'PPF', 'NPS', 'FD / RD', 'Sovereign Gold Bond', 'Real Estate', 'Sukanya Samriddhi', 'Cash'];
 
   // ── Account Deletion ───────────────────────────────────────────────────────
   // Calls the delete-account Edge Function which removes ALL data + auth.users record.
