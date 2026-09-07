@@ -78,7 +78,10 @@ export default function ExecutiveSummary() {
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm px-4 md:px-6 py-3 md:py-4 rounded-xl flex flex-col items-center justify-center min-w-[120px] transition-colors">
             <span className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Health Score</span>
             <div className="flex items-baseline gap-1">
-              <span className={`text-2xl md:text-3xl font-bold ${healthScore >= 80 ? 'text-emerald-500' : healthScore >= 60 ? 'text-amber-500' : healthScore >= 40 ? 'text-orange-500' : 'text-rose-500'}`}>{healthScore}</span>
+              <span className={`text-2xl md:text-3xl font-bold ${
+                !hasData ? 'text-slate-400 dark:text-slate-500' :
+                healthScore >= 80 ? 'text-emerald-500' : healthScore >= 60 ? 'text-amber-500' : healthScore >= 40 ? 'text-orange-500' : 'text-rose-500'
+              }`}>{!hasData ? '--' : healthScore}</span>
               <span className="text-slate-400 dark:text-slate-500 font-medium text-sm md:text-base">/100</span>
             </div>
             <span className={`text-[10px] md:text-xs font-semibold uppercase tracking-wider mt-0.5 ${
@@ -95,16 +98,30 @@ export default function ExecutiveSummary() {
         </div>
       </div>
 
+      {!hasData && (
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-6 text-center">
+          <h2 className="text-lg font-bold text-indigo-900 dark:text-indigo-100 mb-2">Welcome to your Command Center!</h2>
+          <p className="text-sm text-indigo-700 dark:text-indigo-300 mb-4 max-w-lg mx-auto">
+            Your dashboard is currently empty. To see your Health Score, Net Worth, and FIRE projections, you need to add your income, expenses, and assets.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-700">
+              Go to 'Accounts & Debt' in the sidebar to get started
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <MetricCard label="Monthly Income" value={formatCurrency(totalIncome)} icon={<Wallet size={20} />} color="text-emerald-600" />
-        <MetricCard label="Monthly Expenses" value={formatCurrency(totalExpenses)} icon={<Receipt size={20} />} color="text-rose-500" />
-        <MetricCard label="Total EMI" value={formatCurrency(totalEmi)} icon={<CreditCard size={20} />} color="text-amber-600" />
+        <MetricCard label="Monthly Income" value={hasData ? formatCurrency(totalIncome) : '--'} icon={<Wallet size={20} />} color="text-emerald-600" />
+        <MetricCard label="Monthly Expenses" value={hasData ? formatCurrency(totalExpenses) : '--'} icon={<Receipt size={20} />} color="text-rose-500" />
+        <MetricCard label="Total EMI" value={hasData ? formatCurrency(totalEmi) : '--'} icon={<CreditCard size={20} />} color="text-amber-600" />
         
-        <MetricCard label="Total Assets" value={formatCurrency(totalAssets)} icon={<Landmark size={18} />} color="text-slate-900 dark:text-white" />
-        <MetricCard label="Total Debt" value={formatCurrency(totalDebt)} icon={<FileWarning size={18} />} color="text-rose-600 dark:text-rose-500" />
-        <MetricCard label="Debt-to-Income" value={`${dti.toFixed(1)}%`} icon={<Percent size={18} />} color={dti > 40 ? 'text-rose-600 dark:text-rose-500' : 'text-slate-900 dark:text-white'} />
-        <MetricCard label="Emergency Fund" value={formatCurrency(emergencyCurrent)} icon={<ShieldAlert size={18} />} subtitle={`Target: ${formatCurrency(emergencyTarget)}`} color="text-slate-900 dark:text-white" />
-        <MetricCard label="Savings Rate" value={`${savingsRate.toFixed(1)}%`} icon={<PiggyBank size={18} />} subtitle={`Surplus: ${formatCurrency(surplus)}`} color={savingsRate >= 20 ? 'text-emerald-600 dark:text-emerald-500' : savingsRate < 10 ? 'text-rose-600 dark:text-rose-500' : 'text-amber-600 dark:text-amber-500'} />
+        <MetricCard label="Total Assets" value={hasData ? formatCurrency(totalAssets) : '--'} icon={<Landmark size={18} />} color="text-slate-900 dark:text-white" />
+        <MetricCard label="Total Debt" value={hasData ? formatCurrency(totalDebt) : '--'} icon={<FileWarning size={18} />} color="text-rose-600 dark:text-rose-500" />
+        <MetricCard label="Debt-to-Income" value={hasData ? `${dti.toFixed(1)}%` : '--'} icon={<Percent size={18} />} color={hasData && dti > 40 ? 'text-rose-600 dark:text-rose-500' : 'text-slate-900 dark:text-white'} />
+        <MetricCard label="Emergency Fund" value={hasData ? formatCurrency(emergencyCurrent) : '--'} icon={<ShieldAlert size={18} />} subtitle={hasData ? `Target: ${formatCurrency(emergencyTarget)}` : null} color="text-slate-900 dark:text-white" />
+        <MetricCard label="Savings Rate" value={hasData ? `${savingsRate.toFixed(1)}%` : '--'} icon={<PiggyBank size={18} />} subtitle={hasData ? `Surplus: ${formatCurrency(surplus)}` : null} color={hasData && savingsRate >= 20 ? 'text-emerald-600 dark:text-emerald-500' : hasData && savingsRate < 10 ? 'text-rose-600 dark:text-rose-500' : 'text-amber-600 dark:text-amber-500'} />
       </div>
     </div>
   );

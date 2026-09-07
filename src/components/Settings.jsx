@@ -1,57 +1,124 @@
 import React, { useState } from 'react';
 import { useAppState } from '../context/AppStateContext';
+import { useAuth } from '../context/AuthContext';
 import { exportToExcel } from '../utils/exportExcel';
-import { Download, Database, Layers, Plus, Edit2, Trash2, Check, X, User, Loader2 } from 'lucide-react';
+import { supabase } from '../utils/supabase';
+import {
+  Download, Database, Layers, Plus, Edit2, Trash2, Check, X,
+  User, Loader2, LogOut, ShieldCheck, AlertTriangle, CheckCircle2, FileText, ExternalLink
+} from 'lucide-react';
 import { InfoTooltip } from './Onboarding';
+import AuthModal from './AuthModal';
 
-export default function Settings() {
+export default function Settings({ setCurrentView }) {
   const { state, updateField, addAssetType, removeAssetType, renameAssetType } = useAppState();
+  const { user, signOut, isGuest } = useAuth();
 
   const [newType, setNewType] = useState('');
   const [exporting, setExporting] = useState(false);
   const [editingType, setEditingType] = useState(null);
   const [editingValue, setEditingValue] = useState('');
+  const [showAuth, setShowAuth] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
-  const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Equity', 'Gold', 'Real Estate', 'Debt', 'Cash'];
+  const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Equity', 'EPF', 'PPF', 'NPS', 'FD / RD', 'Sovereign Gold Bond', 'Real Estate', 'Sukanya Samriddhi', 'Cash'];
 
-  const handleKeyChange = (e) => {
-    updateField('settings', { ...state.settings, openaiApiKey: e.target.value });
+  // ── Account Deletion ───────────────────────────────────────────────────────
+  // Calls the delete-account Edge Function which removes ALL data + auth.users record.
+  // This allows the same email to be re-registered immediately.
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      '⚠️ DELETE ACCOUNT\n\nThis will permanently delete all your financial data including assets, liabilities, goals, and your account.\n\nYou can re-register with the same email after deletion.\n\nThis action CANNOT be undone. Click OK to confirm.'
+    );
+    if (!confirmed) return;
+
+    setDeletingAccount(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      const { data, error } = await supabase.functions.invoke('delete-account', {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Clear everything locally and sign out
+      localStorage.clear();
+      await signOut();
+    } catch (err) {
+      console.error('Account deletion failed:', err);
+      alert(
+        `Account deletion failed: ${err.message}\n\n` +
+        `If the error persists, please ensure the "delete-account" Edge Function is deployed in your Supabase project.`
+      );
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   return (
     <div className="space-y-6 md:space-y-8 pb-20 max-w-3xl mx-auto transition-colors">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">AI & Settings
-          <InfoTooltip title="Settings" text="Configure your OpenAI API key here for the AI Advisor. You can also customize asset categories, set your age/DOB for FIRE calculations, and export all your data to Excel." />
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+          Settings
+          <InfoTooltip title="Settings" text="Manage your account, customize asset categories, set your date of birth for FIRE calculations, and export your data." />
         </h1>
-        <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1">Configure your personal finance AI advisor.</p>
+        <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1">
+          Account, preferences, and data management.
+        </p>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4 sm:space-y-6 transition-colors">
+      {/* ── Account Section ─────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4 transition-colors">
         <div className="flex flex-col sm:flex-row items-start gap-4">
           <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            <ShieldCheck size={24} />
           </div>
           <div className="flex-1 w-full">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">OpenAI Integration</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
-              Connect your OpenAI API key to enable the AI Financial Advisor. This key is stored securely in your personal Google Drive and is only used to generate personalized strategies.
-            </p>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">OpenAI API Key</label>
-              <input
-                type="password"
-                placeholder="sk-..."
-                className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
-                value={state.settings?.openaiApiKey || ''}
-                onChange={handleKeyChange}
-              />
-              <p className="text-xs text-slate-400 dark:text-slate-500">Your key is synced securely to your Google Drive and never sent to any other server.</p>
-            </div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Account & Security</h2>
+
+            {isGuest ? (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-start gap-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3">
+                  <AlertTriangle size={18} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-amber-800 dark:text-amber-300">
+                    <p className="font-semibold">You're in Guest Mode</p>
+                    <p className="mt-0.5 text-amber-700 dark:text-amber-400">Your data is saved locally in this browser only. Create an account to save your financial plan securely across all devices.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAuth(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium text-sm transition-colors"
+                >
+                  <User size={16} /> Create Free Account / Sign In
+                </button>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl p-3">
+                  <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-semibold text-emerald-800 dark:text-emerald-300">Signed in</p>
+                    <p className="text-emerald-700 dark:text-emerald-400">{user.email}</p>
+                  </div>
+                </div>
+
+
+                <button
+                  onClick={signOut}
+                  className="flex items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg font-medium text-sm transition-colors"
+                >
+                  <LogOut size={16} /> Sign Out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
+      {/* ── Personal Information ─────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4 sm:space-y-6 transition-colors">
         <div className="flex flex-col sm:flex-row items-start gap-4">
           <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 flex-shrink-0">
@@ -75,6 +142,7 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* ── Asset Categories ─────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4 sm:space-y-6 transition-colors">
         <div className="flex flex-col sm:flex-row items-start gap-4">
           <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center text-amber-600 dark:text-amber-400 flex-shrink-0">
@@ -152,7 +220,7 @@ export default function Settings() {
                         setEditingValue(type);
                       }} className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded transition-colors"><Edit2 size={16} /></button>
                       <button onClick={() => {
-                        if (window.confirm(`Are you sure you want to delete the "${type}" category? Assets currently using this category will keep the string value, but it won't appear in the dropdown.`)) {
+                        if (window.confirm(`Are you sure you want to delete the "${type}" category?`)) {
                           removeAssetType(type);
                         }
                       }} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded transition-colors"><Trash2 size={16} /></button>
@@ -165,6 +233,7 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* ── Data & Backups ───────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4 sm:space-y-6 transition-colors">
         <div className="flex flex-col sm:flex-row items-start gap-4">
           <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 flex-shrink-0">
@@ -173,7 +242,7 @@ export default function Settings() {
           <div className="flex-1 w-full">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Data & Backups</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
-              Export your entire FinGoal OS state into a formatted Excel spreadsheet for offline analysis or safe keeping.
+              Export your entire Wealth For FIRE state into a formatted Excel spreadsheet for offline analysis or safe keeping.
             </p>
             <button
               onClick={() => {
@@ -190,6 +259,57 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {/* ── Danger Zone (authenticated users only) ───────────────────────────── */}
+      {!isGuest && (
+        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-rose-200 dark:border-rose-800 shadow-sm transition-colors">
+          <h2 className="text-lg font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-2 mb-2">
+            <AlertTriangle size={20} /> Danger Zone
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            Permanently delete your account and all associated financial data. This action cannot be undone.
+          </p>
+          <button
+            onClick={handleDeleteAccount}
+            disabled={deletingAccount}
+            className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white rounded-lg font-medium text-sm transition-colors"
+          >
+            {deletingAccount ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+            {deletingAccount ? 'Deleting…' : 'Delete Account & All Data'}
+          </button>
+        </div>
+      )}
+
+      {/* ── Legal ───────────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+        <div className="flex flex-col sm:flex-row items-start gap-4">
+          <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+            <FileText size={24} />
+          </div>
+          <div className="flex-1 w-full">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Privacy & Legal</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
+              Read our Privacy Policy, Terms of Service, and financial disclaimer for Wealth For FIRE.
+            </p>
+            <button
+              onClick={() => setCurrentView && setCurrentView('legal')}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors"
+            >
+              <ShieldCheck size={16} /> View Privacy Policy & Terms
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Auth Modal */}
+      {showAuth && (
+        <AuthModal
+          isOpen={showAuth}
+          onClose={() => setShowAuth(false)}
+          onSuccess={() => setShowAuth(false)}
+          defaultTab="signup"
+        />
+      )}
     </div>
   );
 }

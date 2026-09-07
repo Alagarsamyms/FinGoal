@@ -28,7 +28,7 @@ export default function Protection() {
     <div className="space-y-6 md:space-y-8 pb-20 max-w-7xl mx-auto transition-colors">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Protection
-          <InfoTooltip title="Protection" text="A strong financial plan needs a safety net. Track your term life insurance (should be 15× annual income), health insurance (minimum ₹15L for family), and emergency fund (3–6 months of expenses). FinGoal flags gaps in your coverage." />
+          <InfoTooltip title="Protection" text="A strong financial plan needs a safety net. Track your term life insurance (should be 15× annual income), health insurance (minimum ₹15L for family), and emergency fund (3–6 months of expenses). Wealth For FIRE flags gaps in your coverage." />
         </h1>
         <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1">Safeguard your wealth against the unexpected.</p>
       </div>

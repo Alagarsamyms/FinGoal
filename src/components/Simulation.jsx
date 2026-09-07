@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppState } from '../context/AppStateContext';
+import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import {
   Bot, Sparkles, Loader2, Send, Trash2, CloudOff, Cloud,
-  MessageSquare, ChevronDown, Activity, Flame
+  MessageSquare, ChevronDown, Activity, Flame, Lock
 } from 'lucide-react';
 import { syncChatToDrive, isSyncedToDrive } from '../utils/gdrive';
 import { InfoTooltip } from './Onboarding';
+import { trackEvent, captureError } from '../utils/telemetry';
 
 const MAX_MESSAGES = 50;
 const LS_KEY = 'fingoal_chat_v1';
@@ -34,6 +36,67 @@ const QUICK_PROMPTS = [
   }
 ];
 
+function formatAIResponse(content) {
+  if (!content) return '';
+
+  let text = content.trim();
+
+  // Convert Markdown headers (e.g. ### Header or ## Header)
+  text = text.replace(/^(?:###|##|#)\s+(.+)$/gm, '<h4 class="font-bold text-indigo-600 dark:text-indigo-400 text-sm mt-3 mb-1.5 flex items-center gap-1.5 border-b border-indigo-100 dark:border-indigo-900/40 pb-1">$1</h4>');
+
+  // Convert bold: **text** -> <strong>text</strong>
+  text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-slate-900 dark:text-slate-100">$1</strong>');
+
+  // Convert italic: *text* -> <em>text</em>
+  text = text.replace(/(?<!\*)\*(?!\*)(.*?)\*/g, '<em>$1</em>');
+
+  // Parse lines for bullet lists and numbered lists
+  const lines = text.split('\n');
+  const result = [];
+  let inUl = false;
+  let inOl = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+
+    // Check unordered list item (- or *)
+    const ulMatch = line.match(/^[\-\*]\s+(.+)/);
+    if (ulMatch) {
+      if (inOl) { result.push('</ol>'); inOl = false; }
+      if (!inUl) { result.push('<ul class="my-2 space-y-1.5 pl-4 list-disc text-slate-700 dark:text-slate-300">'); inUl = true; }
+      result.push(`<li class="leading-relaxed">${ulMatch[1]}</li>`);
+      continue;
+    }
+
+    // Check ordered list item (1., 2., etc.)
+    const olMatch = line.match(/^(\d+)\.\s+(.+)/);
+    if (olMatch) {
+      if (inUl) { result.push('</ul>'); inUl = false; }
+      if (!inOl) { result.push('<ol class="my-2 space-y-1.5 pl-4 list-decimal text-slate-700 dark:text-slate-300">'); inOl = true; }
+      result.push(`<li class="leading-relaxed">${olMatch[2]}</li>`);
+      continue;
+    }
+
+    // Close any open lists if line is normal text or empty
+    if (inUl) { result.push('</ul>'); inUl = false; }
+    if (inOl) { result.push('</ol>'); inOl = false; }
+
+    if (!line) continue;
+
+    // Check if line is already an HTML tag
+    if (/^<(h[1-6]|p|ul|ol|li|div|blockquote)/i.test(line)) {
+      result.push(line);
+    } else {
+      result.push(`<p class="my-1.5 leading-relaxed text-slate-700 dark:text-slate-300">${line}</p>`);
+    }
+  }
+
+  if (inUl) result.push('</ul>');
+  if (inOl) result.push('</ol>');
+
+  return result.join('\n');
+}
+
 function ChatBubble({ msg, theme }) {
   const isUser = msg.role === 'user';
   const isWelcome = msg.isWelcome;
@@ -54,7 +117,7 @@ function ChatBubble({ msg, theme }) {
             isUser
               ? 'bg-indigo-600 text-white rounded-br-sm'
               : isWelcome
-              ? 'bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/20 text-slate-800 dark:text-slate-200 border border-indigo-100 dark:border-indigo-800/50 rounded-bl-sm'
+              ? 'bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/20 text-slate-800 dark:text-slate-200 border border-indigo-100 dark:border-indigo-800/50 rounded-bl-sm shadow-sm'
               : 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-600 shadow-sm rounded-bl-sm'
           }`}
         >
@@ -62,8 +125,8 @@ function ChatBubble({ msg, theme }) {
             <p>{msg.content}</p>
           ) : (
             <div
-              className="prose prose-sm dark:prose-invert max-w-none [&>h3]:text-base [&>h3]:font-semibold [&>h3]:mt-2 [&>ul]:mt-1 [&>ul]:space-y-0.5 [&>p]:my-1"
-              dangerouslySetInnerHTML={{ __html: msg.content }}
+              className="prose prose-sm dark:prose-invert max-w-none space-y-1"
+              dangerouslySetInnerHTML={{ __html: formatAIResponse(msg.content) }}
             />
           )}
         </div>
@@ -79,12 +142,9 @@ export default function Simulation() {
   const { state } = useAppState();
   const theme = state.settings?.theme || 'light';
 
-  const [messages, setMessages] = useState(() => {
-    try {
-      const saved = localStorage.getItem(LS_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
+  const [messages, setMessages] = useState([]);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [chatReady, setChatReady] = useState(false); // true after auth+load resolves
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [driveSync, setDriveSync] = useState(false);
@@ -103,7 +163,7 @@ export default function Simulation() {
   const totalAssets = state.assets.reduce((s, a) => s + (parseFloat(a.currentValue ?? a.value) || 0), 0);
   const totalDebt = state.liabilities.reduce((s, l) => s + (parseFloat(l.value) || 0), 0);
 
-  const systemPrompt = `You are FinGoal AI, an elite financial advisor specializing in the Indian personal finance market.
+  const systemPrompt = `You are Wealth For FIRE AI, an elite financial advisor specializing in the Indian personal finance market.
 
 The user's current financial snapshot:
 - Monthly Income: ₹${totalIncome.toLocaleString('en-IN')}
@@ -125,14 +185,115 @@ FORMATTING RULES (strictly follow):
 6. Refer to specific asset names, loan names, and amounts from the user's data when relevant.
 7. Always maintain context from the conversation history.`;
 
-  // ── Persist messages to localStorage ──────────────────────────────────────
+  // ── Auth: track current user, clear & reload chat on user switch ────────────
   useEffect(() => {
+    const showWelcome = (isLoggedIn) => {
+      setMessages([{
+        role: 'assistant',
+        content: isLoggedIn
+          ? `<p>\ud83d\udc4b <strong>Welcome back to Wealth For FIRE AI Advisor!</strong></p>
+<p>Your chat history is synced to the cloud. I have full context of your financial data \u2014 assets, liabilities, goals, and cash flow.</p>
+<ul>
+  <li>Use the <strong>Quick Prompt</strong> chips below for instant analysis</li>
+  <li>Or type your own question \u2014 I support follow-up questions too!</li>
+</ul>`
+          : `<p>\ud83d\udc4b <strong>Welcome to Wealth For FIRE AI Advisor!</strong></p>
+<p>I have full context of your financial data \u2014 assets, liabilities, goals, and cash flow. Ask me anything:</p>
+<ul>
+  <li>Use the <strong>Quick Prompt</strong> chips below for instant analysis</li>
+  <li>Or type your own question \u2014 I support follow-up questions too!</li>
+</ul>
+<p><em>\ud83d\udca1 Sign in to save your conversation history to the cloud.</em></p>`,
+        isWelcome: true,
+        timestamp: Date.now()
+      }]);
+    };
+
+    if (!isSupabaseConfigured()) {
+      // No Supabase — load from localStorage once, then mark ready
+      try {
+        const saved = localStorage.getItem(LS_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.length > 0) { setMessages(parsed); setChatReady(true); return; }
+        }
+      } catch { /* ignore */ }
+      showWelcome(false);
+      setChatReady(true);
+      return;
+    }
+
+    const loadUserChat = async (uid) => {
+      setChatReady(false);
+      setMessages([]);
+      localStorage.removeItem(LS_KEY);
+
+      if (!uid) {
+        // Guest — show welcome immediately
+        showWelcome(false);
+        setChatReady(true);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('ai_conversations')
+          .select('messages')
+          .eq('user_id', uid)
+          .maybeSingle();
+
+        if (!error && data?.messages && Array.isArray(data.messages) && data.messages.length > 0) {
+          setMessages(data.messages);
+        } else {
+          // No saved chat for this user — show welcome
+          showWelcome(true);
+        }
+      } catch (err) {
+        console.error('[Simulation] Error loading chat from Supabase:', err);
+        showWelcome(true);
+      } finally {
+        setChatReady(true);
+      }
+    };
+
+    // Check existing session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const uid = session?.user?.id ?? null;
+      setCurrentUserId(uid);
+      loadUserChat(uid);
+    });
+
+    // Listen for auth changes (sign in, sign out, user switch)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const uid = session?.user?.id ?? null;
+      setCurrentUserId(uid);
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+        loadUserChat(uid);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Persist messages to localStorage & Supabase ─────────────────────────────
+  useEffect(() => {
+    if (messages.length === 0) return; // don't overwrite on clear
     localStorage.setItem(LS_KEY, JSON.stringify(messages));
-    // Sync to Drive (debounced by browser)
     if (isSyncedToDrive() && messages.length > 0) {
       syncChatToDrive(messages);
     }
-  }, [messages]);
+
+    if (isSupabaseConfigured() && currentUserId && messages.length > 0) {
+      supabase.from('ai_conversations').upsert({
+        user_id: currentUserId,
+        messages: messages,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' }).then(({ error }) => {
+        if (error) console.error('[Simulation] Failed to save chat to Supabase:', error.message);
+      });
+    }
+  }, [messages, currentUserId]);
 
   // ── Check Drive sync status ────────────────────────────────────────────────
   useEffect(() => {
@@ -170,37 +331,11 @@ FORMATTING RULES (strictly follow):
     setShowScrollBtn(!atBottom);
   };
 
-  // ── Show welcome message only on first load if chat is empty ──────────────
-  useEffect(() => {
-    if (messages.length === 0) {
-      setMessages([{
-        role: 'assistant',
-        content: `<p>👋 <strong>Welcome to FinGoal AI Advisor!</strong></p>
-<p>I have full context of your financial data — assets, liabilities, goals, and cash flow. Ask me anything:</p>
-<ul>
-  <li>Use the <strong>Quick Prompt</strong> chips below for instant analysis</li>
-  <li>Or type your own question — I support follow-up questions too!</li>
-</ul>
-<p><em>Note: Your OpenAI API key is required in Settings to activate AI responses.</em></p>`,
-        isWelcome: true,
-        timestamp: Date.now()
-      }]);
-    }
-  }, []); // run only once on mount
+  // ── (No separate welcome useEffect needed — welcome is shown inline inside loadUserChat) ──
 
   // ── Core send function ─────────────────────────────────────────────────────
   const sendMessage = async (userText) => {
     if (!userText?.trim() || loading) return;
-
-    if (!state.settings?.openaiApiKey) {
-      const errorMsg = {
-        role: 'assistant',
-        content: `<p>⚠️ <strong>API Key Required</strong></p><p>Please go to <strong>Settings</strong> and enter your OpenAI API key to enable AI responses.</p>`,
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, errorMsg]);
-      return;
-    }
 
     const userMessage = { role: 'user', content: userText.trim(), timestamp: Date.now() };
     const updatedMessages = [...messages, userMessage].slice(-MAX_MESSAGES);
@@ -208,43 +343,92 @@ FORMATTING RULES (strictly follow):
     setInputText('');
     setLoading(true);
 
-    // Build OpenAI messages array — use the last 20 real messages for context window
+    // Build context messages (strip welcome msg + timestamps for AI)
     const contextMessages = updatedMessages
       .filter(m => !m.isWelcome)
       .slice(-20)
       .map(m => ({ role: m.role, content: m.content }));
 
+    // Build structured financial context (no raw PII sent)
+    const netWorth = totalAssets - totalDebt;
+    const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses - totalEmi) / totalIncome) * 100 : 0;
+    const fireNumber = (totalExpenses * 12) / 0.04;
+    const financialContext = {
+      netWorth,
+      income: totalIncome,
+      expenses: totalExpenses,
+      emi: totalEmi,
+      totalAssets,
+      totalLiabilities: totalDebt,
+      savingsRate,
+      goalCount: state.goals?.length || 0,
+      fireNumber,
+    };
+
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${state.settings.openaiApiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            ...contextMessages
-          ],
-          temperature: 0.7,
-          max_tokens: 800
-        })
+      if (!isSupabaseConfigured()) {
+        throw new Error('SUPABASE_NOT_CONFIGURED');
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error('NOT_AUTHENTICATED');
+      }
+
+      // Invoke the secure Edge Function
+      const { data, error } = await supabase.functions.invoke('fingoal-ai-advisor', {
+        body: { messages: contextMessages, financialContext },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
-      const data = await response.json();
-      if (data.error) throw new Error(data.error.message);
+      if (error) {
+        // FunctionsFetchError typically means the function isn't deployed yet
+        if (error.message?.includes('FunctionsFetchError') || error.message?.includes('Failed to fetch') || error.context?.status === 404) {
+          throw new Error('FUNCTION_NOT_DEPLOYED');
+        }
+        throw new Error(error.message);
+      }
+      if (data?.error) throw new Error(data.error);
 
       const aiReply = {
         role: 'assistant',
-        content: data.choices[0].message.content,
+        content: data.reply || '<p>No response received. Please try again.</p>',
         timestamp: Date.now()
       };
       setMessages(prev => [...prev.slice(-MAX_MESSAGES + 1), aiReply]);
+      trackEvent('ai_advisor_used');
     } catch (err) {
+      let errorContent;
+
+      if (err.message === 'NOT_AUTHENTICATED') {
+        errorContent = `<p>🔐 <strong>Sign in to use AI Advisor</strong></p>
+<p>The AI Advisor requires an account to securely process your financial data. Your analysis stays private — we never share your data.</p>
+<ul><li>Click <strong>Sign In / Sign Up</strong> in the sidebar to get started</li><li>All your guest data will be saved automatically when you sign in</li></ul>`;
+      } else if (err.message === 'FUNCTION_NOT_DEPLOYED') {
+        errorContent = `<p>⚙️ <strong>AI Advisor Setup Required</strong></p>
+<p>The AI advisor function needs to be deployed to your Supabase project first.</p>
+<ul>
+  <li>Go to your <strong>Supabase Dashboard → Edge Functions</strong></li>
+  <li>Create a new function named <strong>fingoal-ai-advisor</strong></li>
+  <li>Paste the code from <code>supabase/functions/fingoal-ai-advisor/index.ts</code></li>
+  <li>Ensure <strong>OPENAI_API_KEY</strong> is set in Supabase Secrets</li>
+</ul>`;
+      } else if (err.message === 'SUPABASE_NOT_CONFIGURED') {
+        errorContent = `<p>⚙️ <strong>Supabase Not Configured</strong></p>
+<p>Please ensure your <code>.env.local</code> file contains valid <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> values, then restart the dev server.</p>`;
+      } else if (err.message?.includes('AI service is not configured')) {
+        errorContent = `<p>🔑 <strong>OpenAI Key Not Set</strong></p>
+<p>The AI advisor is running but the OpenAI API key is not configured on the server.</p>
+<ul><li>In your Supabase Dashboard, go to <strong>Edge Functions → Secrets</strong></li><li>Add a secret: <strong>OPENAI_API_KEY</strong> = your OpenAI API key</li></ul>`;
+      } else {
+        errorContent = `<p>❌ <strong>AI Advisor Error</strong></p><p>${err.message}</p><p>Your financial dashboard and all calculations remain fully available.</p>`;
+      }
+
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `<p>❌ <strong>Error:</strong> ${err.message}</p><p>Please check your API key in Settings and try again.</p>`,
+        content: errorContent,
         timestamp: Date.now()
       }]);
     } finally {
@@ -260,20 +444,29 @@ FORMATTING RULES (strictly follow):
     }
   };
 
-  const clearChat = () => {
+  const clearChat = async () => {
     if (window.confirm('Clear all chat history? This cannot be undone.')) {
-      setMessages([]);
       localStorage.removeItem(LS_KEY);
       if (isSyncedToDrive()) syncChatToDrive([]);
-      // Reinstate welcome message
-      setTimeout(() => {
-        setMessages([{
-          role: 'assistant',
-          content: `<p>🔄 <strong>Chat cleared.</strong> Ready for a fresh conversation! Use the chips below or type your question.</p>`,
-          isWelcome: true,
-          timestamp: Date.now()
-        }]);
-      }, 100);
+
+      if (isSupabaseConfigured()) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const uid = session?.user?.id;
+        if (uid) {
+          await supabase.from('ai_conversations').delete().eq('user_id', uid);
+        }
+      }
+
+      // Show fresh welcome after clear
+      setMessages([{
+        role: 'assistant',
+        content: currentUserId
+          ? `<p>\ud83d\udd04 <strong>Chat cleared.</strong> Ready for a fresh conversation!</p>
+<p>Your new conversation will be saved to the cloud automatically.</p>`
+          : `<p>\ud83d\udd04 <strong>Chat cleared.</strong> Ready for a fresh conversation! Use the chips below or type your question.</p>`,
+        isWelcome: true,
+        timestamp: Date.now()
+      }]);
     }
   };
 
@@ -300,14 +493,14 @@ FORMATTING RULES (strictly follow):
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Drive sync badge */}
+          {/* Sync status badge — shows Cloud if Supabase or Drive synced, else Local Only */}
           <div className={`hidden sm:flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${
-            driveSync
+            currentUserId || driveSync
               ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700'
               : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
           }`}>
-            {driveSync ? <Cloud size={12} /> : <CloudOff size={12} />}
-            {driveSync ? 'Drive Synced' : 'Local Only'}
+            {currentUserId || driveSync ? <Cloud size={12} /> : <CloudOff size={12} />}
+            {currentUserId ? 'Cloud Synced' : driveSync ? 'Drive Synced' : 'Local Only'}
           </div>
           {/* Clear chat */}
           {messages.length > 1 && (
@@ -374,7 +567,7 @@ FORMATTING RULES (strictly follow):
                 disabled={loading}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${chipColors[qp.color]}`}
               >
-                {qp.icon}
+                {!currentUserId ? <Lock size={12} className="opacity-70" /> : qp.icon}
                 {qp.label}
               </button>
             ))}

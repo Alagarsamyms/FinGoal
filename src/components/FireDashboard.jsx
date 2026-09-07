@@ -13,7 +13,7 @@ export default function FireDashboard() {
   const [roi, setRoi] = useState(12.0);
   const [inflation, setInflation] = useState(6.0);
   const [useNetworth, setUseNetworth] = useState(false);
-  const [investmentStopAge, setInvestmentStopAge] = useState(60);
+  const [investmentStopAge, setInvestmentStopAge] = useState(50);
 
   // Auto-calculate age from DOB if available
   useEffect(() => {
@@ -205,7 +205,10 @@ export default function FireDashboard() {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Safe Withdrawal (SWR)</label>
+            <label className="flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+              Safe Withdrawal (SWR)
+              <InfoTooltip title="Safe Withdrawal Rate (SWR)" text="The percentage of your retirement corpus you can withdraw annually without running out of money. 4% is a globally recognized standard for a 30+ year retirement." />
+            </label>
             <div className="flex items-center gap-3">
               <input type="range" min="2" max="8" step="0.5" value={swr} onChange={(e) => setSwr(parseFloat(e.target.value))} className="flex-1 accent-indigo-600 dark:accent-indigo-500" />
               <span className="font-semibold w-10 text-slate-700 dark:text-slate-300">{swr}%</span>
@@ -226,37 +229,52 @@ export default function FireDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden transition-colors">
-          <div className="absolute top-0 right-0 p-4 opacity-10 text-indigo-600 dark:text-indigo-400"><Target size={48} /></div>
-          <div className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Today's FI Number</div>
-          <div className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">{formatCurrency(projection.initialTarget)}</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">Based on ₹{expenses.toLocaleString('en-IN')}/mo at {swr}% SWR</div>
+        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm relative transition-colors">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-xl">
+            <div className="absolute top-0 right-0 p-4 opacity-10 text-indigo-600 dark:text-indigo-400"><Target size={48} /></div>
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-1 text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+              Today's FI Number
+              <InfoTooltip title="FI Number" text="Financial Independence Number. The total target corpus you need to accumulate to safely retire based on your current expenses and SWR." />
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">{formatCurrency(projection.initialTarget)}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">Based on ₹{expenses.toLocaleString('en-IN')}/mo at {swr}% SWR</div>
+          </div>
         </div>
         
-        <div className="bg-gradient-to-br from-indigo-500 to-violet-600 dark:from-indigo-600 dark:to-violet-700 p-4 sm:p-6 rounded-xl border border-indigo-400 dark:border-indigo-500 shadow-lg relative overflow-hidden text-white transition-colors">
-          <div className="absolute top-0 right-0 p-4 opacity-20 text-white"><Flame size={48} /></div>
-          <div className="text-sm font-semibold text-indigo-100 uppercase tracking-wider mb-1">Retirement Age</div>
-          {projection.fireAge ? (
-            <>
-              <div className="text-3xl sm:text-4xl font-bold">{projection.fireAge}</div>
-              <div className="text-sm text-indigo-100 mt-2 font-medium">{projection.fireAge - age} years from now</div>
-            </>
-          ) : (
-            <div className="text-xl sm:text-2xl font-bold mt-2">Unachievable</div>
-          )}
+        <div className="bg-gradient-to-br from-indigo-500 to-violet-600 dark:from-indigo-600 dark:to-violet-700 p-4 sm:p-6 rounded-xl border border-indigo-400 dark:border-indigo-500 shadow-lg relative text-white transition-colors">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-xl">
+            <div className="absolute top-0 right-0 p-4 opacity-20 text-white"><Flame size={48} /></div>
+          </div>
+          <div className="relative z-10">
+            <div className="text-sm font-semibold text-indigo-100 uppercase tracking-wider mb-1">Retirement Age</div>
+            {projection.fireAge ? (
+              <>
+                <div className="text-3xl sm:text-4xl font-bold">{projection.fireAge}</div>
+                <div className="text-sm text-indigo-100 mt-2 font-medium">{projection.fireAge - age} years from now</div>
+              </>
+            ) : (
+              <div className="text-xl sm:text-2xl font-bold mt-2">Unachievable</div>
+            )}
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden transition-colors">
-          <div className="absolute top-0 right-0 p-4 opacity-10 text-emerald-600 dark:text-emerald-400"><Rocket size={48} /></div>
-          <div className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Future FI Corpus</div>
-          {projection.fireAge ? (
-            <>
-              <div className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(projection.fireCorpus)}</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">Adjusted for {inflation}% inflation</div>
-            </>
-          ) : (
-            <div className="text-slate-400 dark:text-slate-500 mt-2">Increase savings to project.</div>
-          )}
+        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm relative transition-colors">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-xl">
+            <div className="absolute top-0 right-0 p-4 opacity-10 text-emerald-600 dark:text-emerald-400"><Rocket size={48} /></div>
+          </div>
+          <div className="relative z-10">
+            <div className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Future FI Corpus</div>
+            {projection.fireAge ? (
+              <>
+                <div className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(projection.fireCorpus)}</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">Adjusted for {inflation}% inflation</div>
+              </>
+            ) : (
+              <div className="text-slate-400 dark:text-slate-500 mt-2">Increase savings to project.</div>
+            )}
+          </div>
         </div>
       </div>
 
