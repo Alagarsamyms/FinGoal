@@ -93,7 +93,7 @@ const autoCalcEmi = (principal, rate, years) => {
 
 export default function AccountsAndDebt() {
   const { state, updateField, addItem, removeItem, updateItem } = useAppState();
-  const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Equity', 'EPF', 'PPF', 'NPS', 'FD / RD', 'Sovereign Gold Bond', 'Real Estate', 'Sukanya Samriddhi', 'Cash'];
+  const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Stocks (India)', 'Fixed Deposit', 'Gold', 'Real Estate', 'EPF', 'PPF', 'Recurring Deposit', 'Cash', 'NPS', 'Debt', 'Small Savings Scheme', 'Sovereign Gold Bond', 'ETF', 'Bonds', 'Sukanya Samriddhi', 'Silver', 'US Stocks', 'Stocks (Foreign)', 'REITs', 'ULIP', 'Crypto'];
 
   // ── Cash Flow save indicator ──────────────────────────────────
   const [showSaved, setShowSaved] = useState(false);

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Menu, PieChart } from 'lucide-react';
+import { Menu } from 'lucide-react';
+import InstallPrompt from './components/InstallPrompt';
 import { AppStateProvider } from './context/AppStateContext';
 import { AuthProvider } from './context/AuthContext';
 import Dashboard from './components/Dashboard';
@@ -52,6 +53,9 @@ function App() {
           {/* Layer 1: First-visit Welcome Banner */}
           <WelcomeBanner onNavigate={(view) => setCurrentView(view)} />
 
+          {/* Layer 2: PWA Install Prompt */}
+          <InstallPrompt />
+
           {/* Mobile Header */}
           <div className="md:hidden fixed top-0 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 px-4 py-3 flex items-center justify-start gap-3 shadow-sm">
             <button
@@ -62,7 +66,7 @@ function App() {
               <Menu size={24} />
             </button>
             <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-               <PieChart size={22} />
+               <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
                <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Wealth For FIRE</span>
             </div>
           </div>

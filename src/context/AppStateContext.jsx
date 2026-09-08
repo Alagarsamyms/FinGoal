@@ -18,7 +18,7 @@ const initialState = {
   },
   settings: {
     theme: 'light',
-    assetTypes: ['Mutual Fund', 'Equity', 'Gold', 'Real Estate', 'Debt', 'Cash'],
+    assetTypes: ['Mutual Fund', 'Stocks (India)', 'Fixed Deposit', 'Gold', 'Real Estate', 'EPF', 'PPF', 'Recurring Deposit', 'Cash', 'NPS', 'Debt', 'Small Savings Scheme', 'Sovereign Gold Bond', 'ETF', 'Bonds', 'Sukanya Samriddhi', 'Silver', 'US Stocks', 'Stocks (Foreign)', 'REITs', 'ULIP', 'Crypto'],
     dob: '',
     // NOTE: openaiApiKey is no longer stored in state — AI calls go via Edge Function.
   },
@@ -27,6 +27,13 @@ const initialState = {
 
 const LOCAL_STORAGE_KEY = 'fingoal_v2';
 const AppStateContext = createContext();
+
+const mergeAssetTypes = (savedTypes) => {
+  if (!savedTypes || !Array.isArray(savedTypes)) return initialState.settings.assetTypes;
+  const currentTypes = new Set(savedTypes);
+  const missingDefaults = initialState.settings.assetTypes.filter(t => !currentTypes.has(t));
+  return [...savedTypes, ...missingDefaults];
+};
 
 // ── Helper: ensure item ID is a valid UUID (Postgres type safety) ─────────
 function ensureValidUuid(id) {
@@ -238,7 +245,7 @@ async function loadStateFromSupabase(userId) {
 
     settings: {
       theme: cfg?.theme ?? 'light',
-      assetTypes: cfg?.asset_types ?? initialState.settings.assetTypes,
+      assetTypes: mergeAssetTypes(cfg?.asset_types),
       dob: prof?.dob ?? '',
     },
 
@@ -317,7 +324,10 @@ export function AppStateProvider({ children }) {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
     const local = saved ? JSON.parse(saved) : initialState;
     // Strip the openaiApiKey from any existing local data for security
-    if (local.settings) delete local.settings.openaiApiKey;
+    if (local.settings) {
+      delete local.settings.openaiApiKey;
+      local.settings.assetTypes = mergeAssetTypes(local.settings.assetTypes);
+    }
     return local;
   });
 

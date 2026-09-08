@@ -31,7 +31,7 @@ export default function Settings({ setCurrentView }) {
     return () => window.removeEventListener('gdrive_sync_changed', handleGdriveChange);
   }, []);
 
-  const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Equity', 'EPF', 'PPF', 'NPS', 'FD / RD', 'Sovereign Gold Bond', 'Real Estate', 'Sukanya Samriddhi', 'Cash'];
+  const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Stocks (India)', 'Fixed Deposit', 'Gold', 'Real Estate', 'EPF', 'PPF', 'Recurring Deposit', 'Cash', 'NPS', 'Debt', 'Small Savings Scheme', 'Sovereign Gold Bond', 'ETF', 'Bonds', 'Sukanya Samriddhi', 'Silver', 'US Stocks', 'Stocks (Foreign)', 'REITs', 'ULIP', 'Crypto'];
 
   // ── Account Deletion ───────────────────────────────────────────────────────
   // Calls the delete-account Edge Function which removes ALL data + auth.users record.
@@ -191,7 +191,7 @@ export default function Settings({ setCurrentView }) {
               </button>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
               {assetTypes.map(type => (
                 <div key={type} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg">
                   {editingType === type ? (
