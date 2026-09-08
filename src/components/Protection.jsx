@@ -1,9 +1,24 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { useAppState } from '../context/AppStateContext';
+import { Check } from 'lucide-react';
 import { InfoTooltip } from './Onboarding';
 
 export default function Protection() {
   const { state, updateProtection } = useAppState();
+
+  const [showSaved, setShowSaved] = useState(false);
+  const saveTimeout = useRef(null);
+
+  const triggerSaveIndicator = () => {
+    setShowSaved(true);
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => setShowSaved(false), 2000);
+  };
+
+  const handleUpdate = (field, value) => {
+    updateProtection(field, value);
+    triggerSaveIndicator();
+  };
 
   const termCover = parseFloat(state.protection.termInsurance) || 0;
   const healthCover = parseFloat(state.protection.healthInsurance) || 0;
@@ -35,23 +50,26 @@ export default function Protection() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4 sm:space-y-6 transition-colors">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Current Coverage</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-3">
+            Current Coverage
+            {showSaved && <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded flex items-center gap-1 animate-fade-in"><Check size={14} /> Saved</span>}
+          </h2>
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Term Insurance Cover (₹)</label>
-            <input type="number" className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none" value={state.protection.termInsurance || ''} onChange={e => updateProtection('termInsurance', parseFloat(e.target.value) || 0)} />
+            <input type="number" className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none" value={state.protection.termInsurance || ''} onChange={e => handleUpdate('termInsurance', parseFloat(e.target.value) || 0)} />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Health Insurance Cover (₹)</label>
-            <input type="number" className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none" value={state.protection.healthInsurance || ''} onChange={e => updateProtection('healthInsurance', parseFloat(e.target.value) || 0)} />
+            <input type="number" className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none" value={state.protection.healthInsurance || ''} onChange={e => handleUpdate('healthInsurance', parseFloat(e.target.value) || 0)} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Emergency Target (₹)</label>
-              <input type="number" className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none" value={state.protection.emergencyTarget || ''} onChange={e => updateProtection('emergencyTarget', parseFloat(e.target.value) || 0)} />
+              <input type="number" className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none" value={state.protection.emergencyTarget || ''} onChange={e => handleUpdate('emergencyTarget', parseFloat(e.target.value) || 0)} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Current Saved (₹)</label>
-              <input type="number" className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none" value={state.protection.emergencyCurrent || ''} onChange={e => updateProtection('emergencyCurrent', parseFloat(e.target.value) || 0)} />
+              <input type="number" className="w-full border-slate-300 dark:border-slate-600 bg-transparent dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-2 focus:ring-indigo-500 outline-none" value={state.protection.emergencyCurrent || ''} onChange={e => handleUpdate('emergencyCurrent', parseFloat(e.target.value) || 0)} />
             </div>
           </div>
         </div>

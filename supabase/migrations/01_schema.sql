@@ -64,11 +64,19 @@ CREATE TABLE IF NOT EXISTS public.assets (
   name TEXT NOT NULL,
   value NUMERIC DEFAULT 0,
   type TEXT DEFAULT 'Other',
+  invested NUMERIC DEFAULT 0,
+  sip NUMERIC DEFAULT 0,
+  roi NUMERIC DEFAULT 0,
+  owner TEXT DEFAULT 'Self',
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS name TEXT;
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS value NUMERIC DEFAULT 0;
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'Other';
+ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS invested NUMERIC DEFAULT 0;
+ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS sip NUMERIC DEFAULT 0;
+ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS roi NUMERIC DEFAULT 0;
+ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS owner TEXT DEFAULT 'Self';
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
 ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "assets_owner_policy" ON public.assets FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
@@ -82,6 +90,8 @@ CREATE TABLE IF NOT EXISTS public.liabilities (
   interest_rate NUMERIC DEFAULT 0,
   emi NUMERIC DEFAULT 0,
   type TEXT DEFAULT 'Loan',
+  tenure NUMERIC DEFAULT 0,
+  owner TEXT DEFAULT 'Self',
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS name TEXT;
@@ -89,6 +99,8 @@ ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS value NUMERIC DEFAULT 0;
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS interest_rate NUMERIC DEFAULT 0;
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS emi NUMERIC DEFAULT 0;
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'Loan';
+ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS tenure NUMERIC DEFAULT 0;
+ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS owner TEXT DEFAULT 'Self';
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
 ALTER TABLE public.liabilities ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "liabilities_owner_policy" ON public.liabilities FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
@@ -103,6 +115,7 @@ CREATE TABLE IF NOT EXISTS public.goals (
   monthly_contribution NUMERIC DEFAULT 0,
   expected_roi NUMERIC DEFAULT 8,
   target_date DATE,
+  linked_assets JSONB DEFAULT '[]',
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 ALTER TABLE public.goals ADD COLUMN IF NOT EXISTS name TEXT;
@@ -111,9 +124,11 @@ ALTER TABLE public.goals ADD COLUMN IF NOT EXISTS saved_amount NUMERIC DEFAULT 0
 ALTER TABLE public.goals ADD COLUMN IF NOT EXISTS monthly_contribution NUMERIC DEFAULT 0;
 ALTER TABLE public.goals ADD COLUMN IF NOT EXISTS expected_roi NUMERIC DEFAULT 8;
 ALTER TABLE public.goals ADD COLUMN IF NOT EXISTS target_date DATE;
+ALTER TABLE public.goals ADD COLUMN IF NOT EXISTS linked_assets JSONB DEFAULT '[]';
 ALTER TABLE public.goals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
 ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "goals_owner_policy" ON public.goals FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
 
 -- 6. PROTECTION SETTINGS TABLE
 CREATE TABLE IF NOT EXISTS public.protection_settings (

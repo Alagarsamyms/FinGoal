@@ -15,11 +15,19 @@ import { initializeGoogleDriveSync } from './utils/gdrive';
 import { WelcomeBanner } from './components/Onboarding';
 
 function App() {
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState(() => {
+    return window.location.hash === '#legal' ? 'legal' : 'dashboard';
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     initializeGoogleDriveSync();
+    
+    const handleHashChange = () => {
+      if (window.location.hash === '#legal') setCurrentView('legal');
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   const renderView = () => {

@@ -102,7 +102,6 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
               Local Only
             </div>
           )}
-          <button id="auth-btn-react" className="hidden" />
 
           {/* Auth Status Block */}
           {isGuest ? (
