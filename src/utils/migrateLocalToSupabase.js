@@ -147,7 +147,7 @@ export async function migrateLocalToSupabase() {
     const { error } = await supabase.from('user_settings').upsert({
       user_id: userId,
       theme: local.settings?.theme || 'light',
-      asset_types: local.settings?.assetTypes || ['Mutual Fund', 'Equity', 'Gold', 'Real Estate', 'Debt', 'Cash'],
+      asset_types: local.settings?.assetTypes || ['Mutual Fund', 'Stocks (India)', 'Fixed Deposit', 'Gold', 'Real Estate', 'EPF', 'PPF', 'Recurring Deposit', 'Cash', 'NPS', 'Debt', 'Small Savings Scheme', 'Sovereign Gold Bond', 'ETF', 'Bonds', 'Sukanya Samriddhi', 'Silver', 'US Stocks', 'Stocks (Foreign)', 'REITs', 'ULIP', 'Crypto'],
     }, { onConflict: 'user_id' });
     if (error) throw error;
 

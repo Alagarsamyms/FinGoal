@@ -5,6 +5,25 @@ import { InfoTooltip } from './Onboarding';
 
 const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
 
+const formatCurrencyShort = (val) => {
+  if (val === 0 || !val) return '₹0';
+  const absVal = Math.abs(val);
+  const sign = val < 0 ? '-' : '';
+  
+  if (absVal >= 10000000) {
+    // Drop decimal if it ends in .00, otherwise show up to 2 decimal places
+    const formatted = (absVal / 10000000).toFixed(2).replace(/\.00$/, '');
+    return `${sign}₹${formatted} Cr`;
+  } else if (absVal >= 100000) {
+    const formatted = (absVal / 100000).toFixed(2).replace(/\.00$/, '');
+    return `${sign}₹${formatted} L`;
+  } else if (absVal >= 1000) {
+    const formatted = (absVal / 1000).toFixed(2).replace(/\.00$/, '');
+    return `${sign}₹${formatted} K`;
+  }
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+};
+
 export default function ExecutiveSummary() {
   const { state } = useAppState();
 
@@ -74,26 +93,26 @@ export default function ExecutiveSummary() {
           </h1>
           <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1">Your financial command center at a glance.</p>
         </div>
-        <div className="flex gap-3 md:gap-4 overflow-x-auto pb-2 md:pb-0">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm px-4 md:px-6 py-3 md:py-4 rounded-xl flex flex-col items-center justify-center min-w-[120px] transition-colors">
-            <span className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Health Score</span>
+        <div className="grid grid-cols-2 md:flex gap-3 md:gap-4 w-full md:w-auto">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm p-3 sm:px-4 md:px-6 md:py-4 rounded-xl flex flex-col items-center justify-center w-full md:w-auto md:min-w-[120px] transition-colors">
+            <span className="text-[10px] sm:text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 text-center">Health Score</span>
             <div className="flex items-baseline gap-1">
-              <span className={`text-2xl md:text-3xl font-bold ${
+              <span className={`text-xl sm:text-2xl md:text-3xl font-bold ${
                 !hasData ? 'text-slate-400 dark:text-slate-500' :
                 healthScore >= 80 ? 'text-emerald-500' : healthScore >= 60 ? 'text-amber-500' : healthScore >= 40 ? 'text-orange-500' : 'text-rose-500'
               }`}>{!hasData ? '--' : healthScore}</span>
-              <span className="text-slate-400 dark:text-slate-500 font-medium text-sm md:text-base">/100</span>
+              <span className="text-slate-400 dark:text-slate-500 font-medium text-xs sm:text-sm md:text-base">/100</span>
             </div>
-            <span className={`text-[10px] md:text-xs font-semibold uppercase tracking-wider mt-0.5 ${
+            <span className={`text-[10px] md:text-xs font-semibold uppercase tracking-wider mt-0.5 text-center ${
               !hasData ? 'text-slate-400 dark:text-slate-500' :
               healthScore >= 80 ? 'text-emerald-500' :
               healthScore >= 60 ? 'text-amber-500' :
               healthScore >= 40 ? 'text-orange-500' : 'text-rose-500'
             }`}>{healthLabel}</span>
           </div>
-          <div className="gradient-card px-6 md:px-8 py-3 md:py-4 rounded-xl flex flex-col justify-center min-w-[160px]">
-            <span className="text-xs md:text-sm font-medium text-indigo-100 uppercase tracking-wider mb-1">Net Worth</span>
-            <span className="text-2xl md:text-3xl font-bold text-white">{formatCurrency(netWorth)}</span>
+          <div className="gradient-card p-3 sm:px-4 md:px-8 md:py-4 rounded-xl flex flex-col justify-center items-center md:items-start w-full md:w-auto md:min-w-[160px] min-w-0">
+            <span className="text-[10px] sm:text-xs md:text-sm font-medium text-indigo-100 uppercase tracking-wider mb-1 text-center md:text-left w-full">Net Worth</span>
+            <span className="text-xl sm:text-2xl md:text-3xl font-bold text-white text-center md:text-left w-full md:w-auto truncate md:overflow-visible md:whitespace-nowrap" title={formatCurrency(netWorth)}>{formatCurrencyShort(netWorth)}</span>
           </div>
         </div>
       </div>

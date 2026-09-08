@@ -46,7 +46,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
       <aside className={`w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 fixed h-full flex flex-col p-5 z-40 transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="flex items-center justify-between mb-8 text-indigo-600 dark:text-indigo-400">
           <div className="flex items-center gap-3">
-            <PieChart size={28} />
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
             <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Wealth For FIRE</h2>
           </div>
           <button onClick={() => setIsMobileOpen(false)} className="md:hidden text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
