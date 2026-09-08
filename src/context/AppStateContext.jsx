@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
+import { fetchDriveBackup } from '../utils/gdrive';
 
 // ── Initial / Default State ────────────────────────────────────────────────
 const initialState = {
@@ -77,8 +78,12 @@ async function autoMigrateToSupabase(userId, local) {
           id: ensureValidUuid(a.id),
           user_id: userId,
           name: a.name || 'Unnamed',
-          value: Number(a.value) || 0,
+          value: Number(a.currentValue ?? a.value) || 0,
           type: a.type || 'Other',
+          invested: Number(a.invested) || 0,
+          sip: Number(a.sip) || 0,
+          roi: Number(a.roi) || 0,
+          owner: a.owner || 'Self',
         })),
         { onConflict: 'id' }
       )
@@ -97,6 +102,8 @@ async function autoMigrateToSupabase(userId, local) {
           interest_rate: Number(l.interest) || 0,
           emi: Number(l.emi) || 0,
           type: l.type || 'Loan',
+          tenure: Number(l.tenure) || 0,
+          owner: l.owner || 'Self',
         })),
         { onConflict: 'id' }
       )
@@ -115,7 +122,8 @@ async function autoMigrateToSupabase(userId, local) {
           saved_amount: Number(g.saved) || 0,
           monthly_contribution: Number(g.contribution) || 0,
           expected_roi: Number(g.roi) || 8,
-          target_date: g.date || null,
+          target_date: (g.date && g.date.length === 7) ? `${g.date}-01` : (g.date || null),
+          linked_assets: g.linkedAssets || [],
         })),
         { onConflict: 'id' }
       )
@@ -191,7 +199,12 @@ async function loadStateFromSupabase(userId) {
       id: a.id,
       name: a.name,
       value: a.value,
+      currentValue: a.value,
       type: a.type,
+      invested: a.invested,
+      sip: a.sip,
+      roi: a.roi,
+      owner: a.owner,
     })),
 
     liabilities: (liabilities.data || []).map(l => ({
@@ -201,6 +214,8 @@ async function loadStateFromSupabase(userId) {
       interest: l.interest_rate,
       emi: l.emi,
       type: l.type,
+      tenure: l.tenure,
+      owner: l.owner,
     })),
 
     goals: (goals.data || []).map(g => ({
@@ -211,6 +226,7 @@ async function loadStateFromSupabase(userId) {
       contribution: g.monthly_contribution,
       roi: g.expected_roi,
       date: g.target_date,
+      linkedAssets: Array.isArray(g.linked_assets) ? g.linked_assets : [],
     })),
 
     protection: {
@@ -242,8 +258,12 @@ async function supabaseUpsertItem(listName, userId, item) {
         id: validId,
         user_id: userId,
         name: item.name || 'Unnamed',
-        value: Number(item.value) || 0,
+        value: Number(item.currentValue ?? item.value) || 0,
         type: item.type || 'Other',
+        invested: Number(item.invested) || 0,
+        sip: Number(item.sip) || 0,
+        roi: Number(item.roi) || 0,
+        owner: item.owner || 'Self',
       }, { onConflict: 'id' });
     } else if (listName === 'liabilities') {
       result = await supabase.from('liabilities').upsert({
@@ -254,6 +274,8 @@ async function supabaseUpsertItem(listName, userId, item) {
         interest_rate: Number(item.interest) || 0,
         emi: Number(item.emi) || 0,
         type: item.type || 'Loan',
+        tenure: Number(item.tenure) || 0,
+        owner: item.owner || 'Self',
       }, { onConflict: 'id' });
     } else if (listName === 'goals') {
       result = await supabase.from('goals').upsert({
@@ -264,7 +286,8 @@ async function supabaseUpsertItem(listName, userId, item) {
         saved_amount: Number(item.saved) || 0,
         monthly_contribution: Number(item.contribution) || 0,
         expected_roi: Number(item.roi) || 8,
-        target_date: item.date || null,
+        target_date: (item.date && item.date.length === 7) ? `${item.date}-01` : (item.date || null),
+        linked_assets: Array.isArray(item.linkedAssets) ? item.linkedAssets : [],
       }, { onConflict: 'id' });
     }
     if (result?.error) {
@@ -379,16 +402,24 @@ export function AppStateProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
 
-    // Debounced Drive sync (legacy — only fires if gdrive still connected)
-    if (window.syncToDrive) {
-      window.syncToDrive(state);
-    }
-
     // Debounced scalar sync to Supabase (500ms delay to batch rapid updates)
     if (userIdRef.current && isSupabaseConfigured()) {
       clearTimeout(syncTimeoutRef.current);
       syncTimeoutRef.current = setTimeout(() => {
         syncStateToSupabase(userIdRef.current, state);
+        
+        // Also push to Google Drive if connected (One-way backup)
+        if (window.syncToDrive) {
+          window.syncToDrive(state);
+        }
+      }, 500);
+    } else {
+      // If not logged in to Supabase, just backup to GDrive locally
+      clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = setTimeout(() => {
+        if (window.syncToDrive) {
+          window.syncToDrive(state);
+        }
       }, 500);
     }
 
@@ -399,9 +430,37 @@ export function AppStateProvider({ children }) {
   // ── Expose global setter for GDrive sync (backward-compat) ───────────────
   useEffect(() => {
     window.updateAppStateFromDrive = (data) => {
+      if (userIdRef.current && isSupabaseConfigured()) {
+        console.log('[AppState] Ignoring GDrive sync overwrite because Supabase is the active master database.');
+        return;
+      }
       if (data.settings) delete data.settings.openaiApiKey;
       setState(data);
     };
+  }, []);
+
+  const restoreFromBackup = useCallback(async () => {
+    try {
+      setSyncing(true);
+      const backupData = await fetchDriveBackup();
+      if (backupData) {
+        if (backupData.settings) delete backupData.settings.openaiApiKey;
+        setState(backupData);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(backupData));
+        
+        // Force-push restored data to Supabase
+        if (userIdRef.current && isSupabaseConfigured()) {
+          await autoMigrateToSupabase(userIdRef.current, backupData);
+        }
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('[AppState] Restore failed:', err);
+      return false;
+    } finally {
+      setSyncing(false);
+    }
   }, []);
 
   // ── State mutation helpers ─────────────────────────────────────────────────
@@ -529,6 +588,7 @@ export function AppStateProvider({ children }) {
       addAssetType,
       removeAssetType,
       renameAssetType,
+      restoreFromBackup,
     }}>
       {children}
     </AppStateContext.Provider>

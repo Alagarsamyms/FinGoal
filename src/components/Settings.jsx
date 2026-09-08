@@ -3,6 +3,7 @@ import { useAppState } from '../context/AppStateContext';
 import { useAuth } from '../context/AuthContext';
 import { exportToExcel } from '../utils/exportExcel';
 import { supabase } from '../utils/supabase';
+import { isSyncedToDrive, handleDriveAuthClick, disconnectDrive } from '../utils/gdrive';
 import {
   Download, Database, Layers, Plus, Edit2, Trash2, Check, X,
   User, Loader2, LogOut, ShieldCheck, AlertTriangle, CheckCircle2, FileText, ExternalLink
@@ -20,6 +21,15 @@ export default function Settings({ setCurrentView }) {
   const [editingValue, setEditingValue] = useState('');
   const [showAuth, setShowAuth] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [gdriveConnected, setGdriveConnected] = useState(false);
+
+  React.useEffect(() => {
+    setGdriveConnected(isSyncedToDrive());
+    const handleGdriveChange = () => setGdriveConnected(isSyncedToDrive());
+    window.addEventListener('gdrive_sync_changed', handleGdriveChange);
+    return () => window.removeEventListener('gdrive_sync_changed', handleGdriveChange);
+  }, []);
 
   const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Equity', 'EPF', 'PPF', 'NPS', 'FD / RD', 'Sovereign Gold Bond', 'Real Estate', 'Sukanya Samriddhi', 'Cash'];
 
@@ -242,19 +252,95 @@ export default function Settings({ setCurrentView }) {
           <div className="flex-1 w-full">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Data & Backups</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
-              Export your entire Wealth For FIRE state into a formatted Excel spreadsheet for offline analysis or safe keeping.
+              Export your data to Excel, or configure a continuous secure backup to your personal Google Drive account.
+            </p>
+
+            <div className="space-y-4">
+              {/* Google Drive Status (Only for Google Users) */}
+              {user?.app_metadata?.provider === 'google' && (
+                <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Database size={16} /> Google Drive Backup
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                      {gdriveConnected
+                        ? "Your data is automatically backed up to Drive on every change."
+                        : "Connect your Google Drive to enable continuous cloud backups."}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2 w-full sm:w-auto">
+                    {gdriveConnected ? (
+                      <>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm("⚠️ OVERWRITE WARNING\n\nThis will completely overwrite your current data with the last backup from Google Drive. Are you sure?")) {
+                              setRestoring(true);
+                              const success = await useAppState().restoreFromBackup();
+                              setRestoring(false);
+                              if (success) alert("Successfully restored backup from Google Drive.");
+                              else alert("Failed to restore backup.");
+                            }
+                          }}
+                          disabled={restoring}
+                          className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-800 dark:text-white disabled:opacity-50 rounded-lg font-medium text-sm transition-colors"
+                        >
+                          {restoring ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                          Restore
+                        </button>
+                        <button
+                          onClick={disconnectDrive}
+                          className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg font-medium text-sm transition-colors"
+                        >
+                          Disconnect
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={handleDriveAuthClick}
+                        className="w-full sm:w-auto flex justify-center items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors"
+                      >
+                        Connect Drive
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Excel Export */}
+              <button
+                onClick={() => {
+                  setExporting(true);
+                  try { exportToExcel(state); }
+                  finally { setExporting(false); }
+                }}
+                disabled={exporting}
+                className="flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-60 disabled:cursor-wait text-slate-700 dark:text-slate-200 rounded-lg font-medium transition-colors"
+              >
+                {exporting ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
+                {exporting ? 'Generating Excel…' : 'Export to Excel (.xlsx)'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Legal ───────────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+        <div className="flex flex-col sm:flex-row items-start gap-4">
+          <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+            <FileText size={24} />
+          </div>
+          <div className="flex-1 w-full">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Privacy & Legal</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
+              Read our Privacy Policy, Terms of Service, and financial disclaimer for Wealth For FIRE.
             </p>
             <button
-              onClick={() => {
-                setExporting(true);
-                try { exportToExcel(state); }
-                finally { setExporting(false); }
-              }}
-              disabled={exporting}
-              className="flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-wait text-white rounded-lg font-medium transition-colors"
+              onClick={() => setCurrentView && setCurrentView('legal')}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors"
             >
-              {exporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-              {exporting ? 'Generating Excel…' : 'Export to Excel (.xlsx)'}
+              <ShieldCheck size={16} /> View Privacy Policy & Terms
             </button>
           </div>
         </div>
@@ -279,27 +365,6 @@ export default function Settings({ setCurrentView }) {
           </button>
         </div>
       )}
-
-      {/* ── Legal ───────────────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
-        <div className="flex flex-col sm:flex-row items-start gap-4">
-          <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
-            <FileText size={24} />
-          </div>
-          <div className="flex-1 w-full">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Privacy & Legal</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
-              Read our Privacy Policy, Terms of Service, and financial disclaimer for Wealth For FIRE.
-            </p>
-            <button
-              onClick={() => setCurrentView && setCurrentView('legal')}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors"
-            >
-              <ShieldCheck size={16} /> View Privacy Policy & Terms
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Auth Modal */}
       {showAuth && (
