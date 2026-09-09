@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PieChart, Activity, Wallet, Target, Flame, Settings, ShieldCheck, Sparkles, X, Sun, Moon, LogIn, LogOut, User, FileText } from 'lucide-react';
+import { PieChart, Activity, Wallet, Target, Flame, Settings, ShieldCheck, Sparkles, X, Sun, Moon, LogIn, LogOut, User, FileText, Share2 } from 'lucide-react';
 import { useAppState } from '../context/AppStateContext';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './AuthModal';
@@ -13,6 +13,29 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
 
   const toggleTheme = () => {
     updateField('settings', { ...state.settings, theme: theme === 'light' ? 'dark' : 'light' });
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Wealth For FIRE',
+      text: 'Take control of your financial future! 🔥 Track your net worth, destroy debts, and plan your early retirement with Wealth For FIRE. Join me today!',
+      url: window.location.origin,
+    };
+
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n\n${shareData.url}`);
+        alert('Share text copied to clipboard!');
+      } catch (err) {
+        console.error('Failed to copy text:', err);
+      }
+    }
   };
 
   const navItem = (id, label, icon) => {
@@ -73,6 +96,15 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
           >
             <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
+
+          {/* Share Button */}
+          <button
+            onClick={handleShare}
+            className="w-full flex items-center justify-between px-4 py-2 rounded-lg text-sm font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors border border-emerald-200 dark:border-emerald-800"
+          >
+            <span>Share App</span>
+            <Share2 size={16} />
           </button>
 
           {/* Storage sync status */}
