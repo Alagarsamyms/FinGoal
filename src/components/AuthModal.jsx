@@ -141,6 +141,15 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'lo
             ))}
           </div>
 
+          {tab === 'signup' && (
+            <p className="text-[11px] text-center text-slate-500 dark:text-slate-400 mb-5 px-2 leading-relaxed">
+              By continuing, you agree to our{' '}
+              <a href="#legal" onClick={onClose} className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Terms of Service</a>
+              {' '}and{' '}
+              <a href="#legal" onClick={onClose} className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Privacy Policy</a>.
+            </p>
+          )}
+
           {/* Google OAuth */}
           <button
             onClick={handleGoogleLogin}

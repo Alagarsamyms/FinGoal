@@ -559,7 +559,7 @@ FORMATTING RULES (strictly follow):
         <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-b-xl">
 
           {/* Quick Prompt Chips */}
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
             {QUICK_PROMPTS.map(qp => (
               <button
                 key={qp.id}
@@ -568,42 +568,47 @@ FORMATTING RULES (strictly follow):
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${chipColors[qp.color]}`}
               >
                 {!currentUserId ? <Lock size={12} className="opacity-70" /> : qp.icon}
-                {qp.label}
+                <span className="whitespace-nowrap">{qp.label}</span>
               </button>
             ))}
-            <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 ml-auto">
+            <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 ml-auto pt-1 sm:pt-0">
               <MessageSquare size={10} />
               {messages.filter(m => !m.isWelcome).length} messages
             </div>
           </div>
 
           {/* Input Row */}
-          <div className="flex gap-2 items-end">
-            <div className="flex-1 relative">
-              <textarea
-                ref={inputRef}
-                value={inputText}
-                onChange={e => {
-                  setInputText(e.target.value);
-                  // Auto-resize
-                  e.target.style.height = 'auto';
-                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask anything about your finances… (Enter to send, Shift+Enter for new line)"
-                rows={1}
-                disabled={loading}
-                className="w-full resize-none border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 disabled:opacity-60 leading-relaxed"
-                style={{ minHeight: 46 }}
-              />
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2 items-end">
+              <div className="flex-1 relative">
+                <textarea
+                  ref={inputRef}
+                  value={inputText}
+                  onChange={e => {
+                    setInputText(e.target.value);
+                    // Auto-resize
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask anything about your finances..."
+                  rows={1}
+                  disabled={loading}
+                  className="w-full resize-none border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 disabled:opacity-60 leading-relaxed overflow-hidden"
+                  style={{ minHeight: 46 }}
+                />
+              </div>
+              <button
+                onClick={() => sendMessage(inputText)}
+                disabled={loading || !inputText.trim()}
+                className="flex-shrink-0 w-12 h-12 sm:w-11 sm:h-11 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white rounded-xl flex items-center justify-center transition-colors shadow-sm self-end"
+              >
+                {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} className="ml-0.5" />}
+              </button>
             </div>
-            <button
-              onClick={() => sendMessage(inputText)}
-              disabled={loading || !inputText.trim()}
-              className="flex-shrink-0 w-11 h-11 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white rounded-xl flex items-center justify-center transition-colors shadow-sm"
-            >
-              {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-            </button>
+            <div className="hidden sm:block text-[10px] text-slate-400 dark:text-slate-500 text-center">
+              Press <kbd className="px-1 py-0.5 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 font-sans mx-0.5">Enter</kbd> to send, <kbd className="px-1 py-0.5 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 font-sans mx-0.5">Shift + Enter</kbd> for new line
+            </div>
           </div>
         </div>
       </div>
