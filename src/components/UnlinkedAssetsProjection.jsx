@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TrendingUp, Layers, Rocket } from 'lucide-react';
+import { calculateFutureValue } from '../utils/calculations';
 
 export default function UnlinkedAssetsProjection() {
   const { state } = useAppState();
@@ -11,7 +12,7 @@ export default function UnlinkedAssetsProjection() {
   const projectionData = useMemo(() => {
     // Calculate unallocated percentages for each asset
     const assetAllocations = {};
-    state.goals.forEach(g => {
+    state.goals?.forEach(g => {
       if (g.linkedAssets) {
         g.linkedAssets.forEach(link => {
           if (!assetAllocations[link.assetId]) assetAllocations[link.assetId] = 0;
@@ -20,7 +21,7 @@ export default function UnlinkedAssetsProjection() {
       }
     });
 
-    const unlinkedAssets = state.assets.map(a => {
+    const unlinkedAssets = (state.assets || []).map(a => {
       const allocated = assetAllocations[a.id] || 0;
       const unallocatedPercent = Math.max(0, 100 - allocated);
       
@@ -49,20 +50,11 @@ export default function UnlinkedAssetsProjection() {
       let totalInvestedForYear = 0;
 
       unlinkedAssets.forEach(a => {
-        const annualRate = a.roi / 100;
-        const monthlyRate = annualRate / 12;
         const months = i * 12;
-
         const invested = a.currentValue + (a.sip * months);
         totalInvestedForYear += invested;
 
-        if (monthlyRate === 0) {
-          totalValueForYear += invested;
-        } else {
-          const futurePrincipal = a.currentValue * Math.pow(1 + monthlyRate, months);
-          const futureSip = a.sip * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * (1 + monthlyRate);
-          totalValueForYear += futurePrincipal + futureSip;
-        }
+        totalValueForYear += calculateFutureValue(a.currentValue, a.sip, a.roi, months);
       });
 
       data.push({

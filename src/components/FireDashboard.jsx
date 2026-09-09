@@ -3,6 +3,7 @@ import { useAppState } from '../context/AppStateContext';
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
 import { Flame, Target, Rocket, AlertTriangle } from 'lucide-react';
 import { InfoTooltip } from './Onboarding';
+import { calculateFireProjection } from '../utils/calculations';
 
 export default function FireDashboard() {
   const { state } = useAppState();
@@ -35,13 +36,13 @@ export default function FireDashboard() {
   const income = parseFloat(state.income) || 0;
   
   let emi = parseFloat(state.emi) || 0;
-  state.liabilities.forEach(l => { if (l.emi) emi += parseFloat(l.emi); });
+  state.liabilities?.forEach(l => { if (l.emi) emi += parseFloat(l.emi); });
 
   let totalAssets = 0;
-  state.assets.forEach(a => { totalAssets += parseFloat(a.currentValue || a.value || 0); });
+  state.assets?.forEach(a => { totalAssets += parseFloat(a.currentValue || a.value || 0); });
 
   let totalDebt = 0;
-  state.liabilities.forEach(l => { totalDebt += parseFloat(l.value || 0); });
+  state.liabilities?.forEach(l => { totalDebt += parseFloat(l.value || 0); });
 
   const currentCorpus = totalAssets - totalDebt;
   const surplus = income - expenses - emi;
@@ -56,7 +57,7 @@ export default function FireDashboard() {
     if (!useNetworth) {
       // Logic from UnlinkedAssetsProjection
       const assetAllocations = {};
-      state.goals.forEach(g => {
+      state.goals?.forEach(g => {
         if (g.linkedAssets) {
           g.linkedAssets.forEach(link => {
             if (!assetAllocations[link.assetId]) assetAllocations[link.assetId] = 0;
@@ -65,7 +66,7 @@ export default function FireDashboard() {
         }
       });
 
-      state.assets.forEach(a => {
+      state.assets?.forEach(a => {
         const allocated = assetAllocations[a.id] || 0;
         const unallocatedPercent = Math.max(0, 100 - allocated);
         const val = parseFloat(a.currentValue || a.value || 0);
@@ -79,54 +80,16 @@ export default function FireDashboard() {
       startSurplus = surplus > 0 ? surplus : 0;
     }
 
-    const initialTarget = (expenses * 12) / (swr / 100);
-    const data = [];
-    
-    let corpus = startCorpus;
-    let target = initialTarget;
-    let fireAge = null;
-    let fireCorpus = 0;
-
-    const annualRoi = roi / 100;
-    const annualInf = inflation / 100;
-
-    data.push({
+    return calculateFireProjection(
       age,
-      corpus: Math.round(corpus),
-      target: Math.round(target),
-      invested: Math.round(corpus)
-    });
-
-    for (let i = 1; i <= 50; i++) {
-      const currentAge = age + i;
-      
-      // Target grows with inflation
-      target = target * (1 + annualInf);
-
-      // Corpus grows with ROI + Annual Surplus Compounding
-      // Stop adding surplus if age > investmentStopAge
-      const isInvesting = currentAge <= investmentStopAge;
-      const yearlyContribution = isInvesting ? startSurplus * 12 : 0;
-
-      if (yearlyContribution > 0) {
-        corpus = (corpus * (1 + annualRoi)) + (yearlyContribution * (1 + annualRoi / 2));
-      } else {
-        corpus = corpus * (1 + annualRoi);
-      }
-
-      data.push({
-        age: currentAge,
-        corpus: Math.round(corpus),
-        target: Math.round(target)
-      });
-
-      if (corpus >= target && fireAge === null) {
-        fireAge = currentAge;
-        fireCorpus = Math.round(corpus);
-      }
-    }
-
-    return { data, fireAge, fireCorpus, initialTarget };
+      startCorpus,
+      startSurplus,
+      expenses,
+      inflation,
+      roi,
+      swr,
+      investmentStopAge
+    );
   }, [age, swr, roi, inflation, currentCorpus, surplus, expenses, useNetworth, state.assets, state.goals, investmentStopAge]);
 
   const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);

@@ -23,7 +23,7 @@ function App() {
 
   useEffect(() => {
     initializeGoogleDriveSync();
-    
+
     const handleHashChange = () => {
       if (window.location.hash === '#legal') setCurrentView('legal');
     };
@@ -66,8 +66,8 @@ function App() {
               <Menu size={24} />
             </button>
             <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-               <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
-               <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Wealth For FIRE</span>
+              <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
+              <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Wealth For FIRE</span>
             </div>
           </div>
 

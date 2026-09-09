@@ -123,15 +123,14 @@ export default function InstallPrompt() {
               You have the app installed! 🎉
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-              Open <strong>Wealth For FIRE</strong> from your home screen for a faster, full-screen experience.
+              Please close your browser and open <strong>Wealth For FIRE</strong> directly from your home screen for the best full-screen experience.
             </p>
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2 mt-3">
               <button
                 onClick={dismiss}
                 className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-semibold py-2 px-3 rounded-xl transition-all"
               >
-                <ExternalLink size={12} />
-                Got it — opening app
+                Got it — I'll use the App
               </button>
             </div>
           </div>
