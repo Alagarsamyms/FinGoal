@@ -21,6 +21,8 @@ const initialState = {
     assetTypes: ['Mutual Fund', 'Stocks (India)', 'Fixed Deposit', 'Gold', 'Real Estate', 'EPF', 'PPF', 'Recurring Deposit', 'Cash', 'NPS', 'Debt', 'Small Savings Scheme', 'Sovereign Gold Bond', 'ETF', 'Bonds', 'Sukanya Samriddhi', 'Silver', 'US Stocks', 'Stocks (Foreign)', 'REITs', 'ULIP', 'Crypto'],
     dob: '',
     // NOTE: openaiApiKey is no longer stored in state — AI calls go via Edge Function.
+    aiQueriesCount: 0,
+    sharesCount: 0,
   },
   lastUpdated: 0,
 };
@@ -157,6 +159,8 @@ async function autoMigrateToSupabase(userId, local) {
       user_id: userId,
       theme: local.settings?.theme || 'light',
       asset_types: local.settings?.assetTypes || initialState.settings.assetTypes,
+      ai_queries_count: Number(local.settings?.aiQueriesCount) || 0,
+      shares_count: Number(local.settings?.sharesCount) || 0,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
   );
@@ -247,6 +251,8 @@ async function loadStateFromSupabase(userId) {
       theme: cfg?.theme ?? 'light',
       assetTypes: mergeAssetTypes(cfg?.asset_types),
       dob: prof?.dob ?? '',
+      aiQueriesCount: cfg?.ai_queries_count ?? 0,
+      sharesCount: cfg?.shares_count ?? 0,
     },
 
     lastUpdated: Date.now(),
@@ -599,6 +605,14 @@ export function AppStateProvider({ children }) {
     }
   }, []);
 
+  const updateSettings = useCallback((field, value) => {
+    setState(prev => ({
+      ...prev,
+      settings: { ...prev.settings, [field]: value },
+      lastUpdated: Date.now(),
+    }));
+  }, []);
+
   return (
     <AppStateContext.Provider value={{
       state,
@@ -606,6 +620,7 @@ export function AppStateProvider({ children }) {
       syncing,
       updateField,
       updateProtection,
+      updateSettings,
       addItem,
       removeItem,
       updateItem,
@@ -653,6 +668,8 @@ async function syncStateToSupabase(userId, state) {
         user_id: userId,
         theme: state.settings?.theme || 'light',
         asset_types: state.settings?.assetTypes || initialState.settings.assetTypes,
+        ai_queries_count: state.settings?.aiQueriesCount || 0,
+        shares_count: state.settings?.sharesCount || 0,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' }),
 

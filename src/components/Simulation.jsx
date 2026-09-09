@@ -3,7 +3,7 @@ import { useAppState } from '../context/AppStateContext';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import {
   Bot, Sparkles, Loader2, Send, Trash2, CloudOff, Cloud,
-  MessageSquare, ChevronDown, Activity, Flame, Lock
+  MessageSquare, ChevronDown, Activity, Flame, Lock, Share2
 } from 'lucide-react';
 import { syncChatToDrive, isSyncedToDrive } from '../utils/gdrive';
 import { InfoTooltip } from './Onboarding';
@@ -139,8 +139,12 @@ function ChatBubble({ msg, theme }) {
 }
 
 export default function Simulation() {
-  const { state } = useAppState();
+  const { state, updateSettings } = useAppState();
   const theme = state.settings?.theme || 'light';
+
+  const aiQueriesCount = state.settings?.aiQueriesCount || 0;
+  const sharesCount = state.settings?.sharesCount || 0;
+  const isLocked = aiQueriesCount >= 3 && sharesCount < 5;
 
   const [messages, setMessages] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -342,6 +346,7 @@ FORMATTING RULES (strictly follow):
     setMessages(updatedMessages);
     setInputText('');
     setLoading(true);
+    updateSettings('aiQueriesCount', aiQueriesCount + 1);
 
     // Build context messages (strip welcome msg + timestamps for AI)
     const contextMessages = updatedMessages
@@ -477,6 +482,25 @@ FORMATTING RULES (strictly follow):
     amber: 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-800/50'
   };
 
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Wealth For FIRE',
+          text: "I'm using Wealth For FIRE to plan my early retirement and manage my finances. Check it out!",
+          url: 'https://wealthforfire.geevika.com/',
+        });
+        updateSettings('sharesCount', sharesCount + 1);
+      } else {
+        await navigator.clipboard.writeText('https://wealthforfire.geevika.com/');
+        alert('Link copied to clipboard! Share it with a friend.');
+        updateSettings('sharesCount', sharesCount + 1);
+      }
+    } catch (err) {
+      console.log('Share canceled or failed', err);
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] md:h-[calc(100vh-4rem)] max-w-4xl mx-auto pb-2 transition-colors">
 
@@ -578,8 +602,40 @@ FORMATTING RULES (strictly follow):
           </div>
 
           {/* Input Row */}
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2 items-end">
+          {isLocked ? (
+            <div className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-center shadow-inner relative overflow-hidden">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl"></div>
+              <div className="absolute -left-4 -bottom-4 w-24 h-24 bg-rose-500/10 rounded-full blur-2xl"></div>
+              <Lock size={28} className="text-indigo-500 mb-2 drop-shadow-sm" />
+              <h4 className="font-bold text-slate-900 dark:text-white mb-1 tracking-tight">Unlock Unlimited AI Advice</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mb-4 px-2 max-w-sm">
+                You've reached your free limit (3 queries). Share Wealth For FIRE with 5 friends to unlock the AI Advisor forever!
+              </p>
+              
+              <div className="w-full max-w-[240px] mb-4">
+                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 font-medium mb-1.5 px-1">
+                  <span className="uppercase tracking-wider">Shares</span>
+                  <span>{sharesCount} / 5</span>
+                </div>
+                <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
+                  <div 
+                    className="h-full bg-gradient-to-r from-indigo-500 to-rose-500 transition-all duration-700 ease-out" 
+                    style={{ width: `${(sharesCount / 5) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              <button 
+                onClick={handleShare}
+                className="relative z-10 flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 px-6 rounded-lg transition-all shadow-md hover:shadow-lg active:scale-95"
+              >
+                <Share2 size={16} />
+                Share to Unlock
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2 items-end">
               <div className="flex-1 relative">
                 <textarea
                   ref={inputRef}
@@ -610,6 +666,7 @@ FORMATTING RULES (strictly follow):
               Press <kbd className="px-1 py-0.5 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 font-sans mx-0.5">Enter</kbd> to send, <kbd className="px-1 py-0.5 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 font-sans mx-0.5">Shift + Enter</kbd> for new line
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>
