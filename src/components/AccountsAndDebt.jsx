@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronUp, Calculator } from 'lucide-react';
 import { InfoTooltip, SectionEmptyState } from './Onboarding';
+import { calculateEmi } from '../utils/calculations';
 
 // ─── Shared input style ───────────────────────────────────────────
 const inputCls = 'w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700/60 dark:text-white dark:placeholder-slate-400 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors';
@@ -81,13 +82,12 @@ const Field = ({ label, children }) => (
   </div>
 );
 
-// ─── EMI Calculator Utility ───────────────────────────────────────
 const autoCalcEmi = (principal, rate, years) => {
   const p = parseFloat(principal);
-  const r = parseFloat(rate) / 12 / 100;
+  const r = parseFloat(rate);
   const n = parseFloat(years) * 12;
   if (!p || !r || !n || n <= 0) return '';
-  const emi = (p * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+  const emi = calculateEmi(p, r, n);
   return Math.round(emi).toString();
 };
 

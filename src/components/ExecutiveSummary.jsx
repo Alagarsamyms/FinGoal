@@ -2,6 +2,7 @@ import React from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { Wallet, Receipt, CreditCard, TrendingUp, Landmark, FileWarning, Percent, ShieldAlert, PiggyBank } from 'lucide-react';
 import { InfoTooltip } from './Onboarding';
+import { calculateNetWorth, calculateFinancialHealth } from '../utils/calculations';
 
 const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
 
@@ -32,51 +33,34 @@ export default function ExecutiveSummary() {
   
   // Calculate total EMI from explicit emi input + liability emis
   let totalEmi = parseFloat(state.emi) || 0;
-  state.liabilities.forEach(l => {
+  state.liabilities?.forEach(l => {
     if (l.emi) totalEmi += parseFloat(l.emi);
   });
 
   const surplus = totalIncome - totalExpenses - totalEmi;
 
-  const totalAssets = state.assets.reduce((sum, a) => sum + (parseFloat(a.currentValue || a.value) || 0), 0);
-  const totalDebt = state.liabilities.reduce((sum, l) => sum + (parseFloat(l.value) || 0), 0);
-  const netWorth = totalAssets - totalDebt;
+  const totalAssets = state.assets?.reduce((sum, a) => sum + (parseFloat(a.currentValue || a.value) || 0), 0) || 0;
+  const totalDebt = state.liabilities?.reduce((sum, l) => sum + (parseFloat(l.value) || 0), 0) || 0;
+  const netWorth = calculateNetWorth(state.assets || [], state.liabilities || []);
 
-  // Debt-to-Income Ratio (Total EMI / Total Income)
   const dti = totalIncome > 0 ? (totalEmi / totalIncome) * 100 : 0;
+  const savingsRate = totalIncome > 0 ? (surplus / totalIncome) * 100 : 0;
 
   // Financial Health Score Algorithm (0-100)
   const emergencyTarget = parseFloat(state.protection.emergencyTarget) || 0;
   const emergencyCurrent = parseFloat(state.protection.emergencyCurrent) || 0;
-  const savingsRate = totalIncome > 0 ? (surplus / totalIncome) * 100 : 0;
 
   // Detect if any financial data has been entered at all
   const hasData = totalIncome > 0 || state.assets.length > 0 || state.liabilities.length > 0;
 
-  let healthScore = 0;
-  if (hasData) {
-    healthScore = 100;
-    // Penalty for high DTI (only meaningful when income > 0)
-    if (totalIncome > 0) {
-      if (dti > 40) healthScore -= 30;
-      else if (dti > 30) healthScore -= 15;
-      else if (dti > 20) healthScore -= 5;
-    }
-    // Penalty for low savings rate (only when income > 0)
-    if (totalIncome > 0) {
-      if (savingsRate < 10) healthScore -= 30;
-      else if (savingsRate < 20) healthScore -= 15;
-    } else {
-      // No income entered but has assets/liabilities – mild penalty
-      healthScore -= 15;
-    }
-    // Penalty for no / low emergency fund
-    if (emergencyTarget > 0 && emergencyCurrent < emergencyTarget * 0.5) healthScore -= 20;
-    else if (emergencyTarget > 0 && emergencyCurrent < emergencyTarget) healthScore -= 10;
-    else if (emergencyTarget === 0) healthScore -= 10; // smaller penalty – may be intentional
-  }
-
-  healthScore = Math.max(0, Math.min(100, healthScore)); // clamp
+  const healthScore = calculateFinancialHealth(
+    state.income,
+    state.expenses,
+    totalEmi,
+    emergencyTarget,
+    emergencyCurrent,
+    hasData
+  );
 
   const healthLabel =
     !hasData ? 'No Data' :

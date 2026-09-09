@@ -322,12 +322,23 @@ export function AppStateProvider({ children }) {
   const [state, setState] = useState(() => {
     // Bootstrap from localStorage for instant paint (avoids blank screen)
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    const local = saved ? JSON.parse(saved) : initialState;
+    let local = saved ? JSON.parse(saved) : initialState;
+    
+    // Deep merge to guarantee all objects exist even if loaded from older localStorage
+    local = {
+      ...initialState,
+      ...local,
+      protection: { ...initialState.protection, ...(local.protection || {}) },
+      settings: { ...initialState.settings, ...(local.settings || {}) },
+      assets: local.assets || [],
+      liabilities: local.liabilities || [],
+      goals: local.goals || []
+    };
+
     // Strip the openaiApiKey from any existing local data for security
-    if (local.settings) {
-      delete local.settings.openaiApiKey;
-      local.settings.assetTypes = mergeAssetTypes(local.settings.assetTypes);
-    }
+    delete local.settings.openaiApiKey;
+    local.settings.assetTypes = mergeAssetTypes(local.settings.assetTypes);
+    
     return local;
   });
 
@@ -338,7 +349,10 @@ export function AppStateProvider({ children }) {
   // Stable refs so callbacks don't need to re-memoize on every state/userId change
   const userIdRef = useRef(null);
   const stateRef = useRef(state);
-  stateRef.current = state; // always reflects latest state in render
+  
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   // ── Handle sign-in: auto-migrate new users, then load from Supabase ──────
   const handleSignIn = useCallback(async (uid) => {
