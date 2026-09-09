@@ -583,23 +583,25 @@ FORMATTING RULES (strictly follow):
         <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-b-xl">
 
           {/* Quick Prompt Chips */}
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            {QUICK_PROMPTS.map(qp => (
-              <button
-                key={qp.id}
-                onClick={() => sendMessage(qp.prompt)}
-                disabled={loading}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${chipColors[qp.color]}`}
-              >
-                {!currentUserId ? <Lock size={12} className="opacity-70" /> : qp.icon}
-                <span className="whitespace-nowrap">{qp.label}</span>
-              </button>
-            ))}
-            <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 ml-auto pt-1 sm:pt-0">
-              <MessageSquare size={10} />
-              {messages.filter(m => !m.isWelcome).length} messages
+          {!isLocked && (
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              {QUICK_PROMPTS.map(qp => (
+                <button
+                  key={qp.id}
+                  onClick={() => sendMessage(qp.prompt)}
+                  disabled={loading}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${chipColors[qp.color]}`}
+                >
+                  {!currentUserId ? <Lock size={12} className="opacity-70" /> : qp.icon}
+                  <span className="whitespace-nowrap">{qp.label}</span>
+                </button>
+              ))}
+              <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 ml-auto pt-1 sm:pt-0">
+                <MessageSquare size={10} />
+                {messages.filter(m => !m.isWelcome).length} messages
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Input Row */}
           {isLocked ? (

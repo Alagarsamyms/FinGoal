@@ -60,24 +60,9 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
           {navItem('goals', 'Goals Matrix', <Target size={20} />)}
           {navItem('fire', 'FIRE Engine', <Flame size={20} />)}
           {navItem('protection', 'Protection', <ShieldCheck size={20} />)}
-          {navItem('simulation', 'AI Simulator', <Sparkles size={20} />)}
+          {navItem('simulation', 'AI Advisor', <Sparkles size={20} />)}
           {navItem('settings', 'Settings', <Settings size={20} />)}
-
-          {/* Legal — subtle secondary link */}
-          <button
-            onClick={() => {
-              setCurrentView('legal');
-              if (setIsMobileOpen) setIsMobileOpen(false);
-            }}
-            className={`flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-colors w-full text-left mt-1 ${
-              currentView === 'legal'
-                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400'
-                : 'text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300'
-            }`}
-          >
-            <FileText size={16} />
-            Privacy & Terms
-          </button>
+          {user?.email === 'alagar9894@gmail.com' && navItem('admin', 'Admin Dashboard', <Activity size={20} className="text-rose-500" />)}
         </nav>
 
         <div className="mt-auto pt-6 border-t border-slate-200 dark:border-slate-800 space-y-3">

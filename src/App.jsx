@@ -12,6 +12,7 @@ import Simulation from './components/Simulation';
 import FireDashboard from './components/FireDashboard';
 import Settings from './components/Settings';
 import LegalPage from './components/LegalPage';
+import AdminDashboard from './components/AdminDashboard';
 import { initializeGoogleDriveSync } from './utils/gdrive';
 import { WelcomeBanner } from './components/Onboarding';
 
@@ -41,6 +42,7 @@ function App() {
       case 'simulation': return <Simulation />;
       case 'settings': return <Settings setCurrentView={setCurrentView} />;
       case 'legal': return <LegalPage />;
+      case 'admin': return <AdminDashboard setCurrentView={setCurrentView} />;
       default: return <Dashboard />;
     }
   };

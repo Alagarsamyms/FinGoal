@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS public.assets (
   sip NUMERIC DEFAULT 0,
   roi NUMERIC DEFAULT 0,
   owner TEXT DEFAULT 'Self',
+  auto_grow BOOLEAN DEFAULT true,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS name TEXT;
@@ -79,6 +80,7 @@ ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS invested NUMERIC DEFAULT 0;
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS sip NUMERIC DEFAULT 0;
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS roi NUMERIC DEFAULT 0;
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS owner TEXT DEFAULT 'Self';
+ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS auto_grow BOOLEAN DEFAULT true;
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
 ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "assets_owner_policy" ON public.assets FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
@@ -93,6 +95,8 @@ CREATE TABLE IF NOT EXISTS public.liabilities (
   emi NUMERIC DEFAULT 0,
   type TEXT DEFAULT 'Loan',
   tenure NUMERIC DEFAULT 0,
+  original_amount NUMERIC DEFAULT 0,
+  first_emi_date DATE,
   owner TEXT DEFAULT 'Self',
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -102,6 +106,8 @@ ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS interest_rate NUMERIC DE
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS emi NUMERIC DEFAULT 0;
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'Loan';
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS tenure NUMERIC DEFAULT 0;
+ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS original_amount NUMERIC DEFAULT 0;
+ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS first_emi_date DATE;
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS owner TEXT DEFAULT 'Self';
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
 ALTER TABLE public.liabilities ENABLE ROW LEVEL SECURITY;
@@ -228,3 +234,19 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================================================
+-- STEP 4: ADMIN STATS VIEW (Bypasses RLS to count all users/queries)
+-- ============================================================================
+DROP VIEW IF EXISTS public.admin_stats_view;
+CREATE VIEW public.admin_stats_view AS
+SELECT 
+  (SELECT count(*) FROM public.profiles) as total_users,
+  (SELECT COALESCE(sum(ai_queries_count), 0) FROM public.user_settings) as total_ai_queries,
+  (SELECT COALESCE(sum(shares_count), 0) FROM public.user_settings) as total_shares,
+  (SELECT COALESCE(sum(value), 0) FROM public.assets) as total_wealth,
+  (SELECT COALESCE(sum(value), 0) FROM public.liabilities) as total_debt,
+  (SELECT count(*) FROM public.goals) as total_goals,
+  (SELECT COALESCE(avg(monthly_income), 0) FROM public.financial_summaries) as avg_monthly_income;
+
+GRANT SELECT ON public.admin_stats_view TO authenticated;
