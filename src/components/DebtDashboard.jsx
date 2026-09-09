@@ -21,7 +21,41 @@ export default function DebtDashboard() {
     );
   }
 
-  const calculatePayoffDate = (principal, emi, annualRate) => {
+  const calculatePayoffDate = (l) => {
+    // If they provided the original details, use exact timeline math
+    if (l.originalAmount > 0 && l.firstEmiDate && l.emi > 0) {
+      const r = (l.interest / 100) / 12;
+      let totalMonths = 0;
+      
+      if (r === 0) {
+        totalMonths = Math.ceil(l.originalAmount / l.emi);
+      } else {
+        const numerator = 1 - (r * l.originalAmount) / l.emi;
+        if (numerator > 0) {
+          totalMonths = Math.ceil(-Math.log(numerator) / Math.log(1 + r));
+        } else {
+          return { months: -1, text: 'EMI too low for original amount' };
+        }
+      }
+      
+      const startDate = new Date(l.firstEmiDate + '-01'); // YYYY-MM
+      startDate.setMonth(startDate.getMonth() + totalMonths);
+      
+      const now = new Date();
+      let remainingMonths = (startDate.getFullYear() - now.getFullYear()) * 12 + (startDate.getMonth() - now.getMonth());
+      if (remainingMonths < 0) remainingMonths = 0;
+      
+      return { 
+        months: remainingMonths, 
+        text: startDate.toLocaleString('default', { month: 'short', year: 'numeric' }) 
+      };
+    }
+    
+    // Fallback to old logic using current balance
+    const principal = l.value;
+    const emi = l.emi;
+    const annualRate = l.interest;
+    
     if (principal <= 0) return { months: 0, text: 'Paid off' };
     if (emi <= 0) return { months: -1, text: 'No EMI defined' };
     
@@ -62,7 +96,7 @@ export default function DebtDashboard() {
 
       <div className="flex-1 overflow-y-auto pr-2 space-y-4">
         {sortedDebts.map(l => {
-          const payoff = calculatePayoffDate(l.value, l.emi, l.interest);
+          const payoff = calculatePayoffDate(l);
           const isWarning = payoff.months === -1;
           
           return (

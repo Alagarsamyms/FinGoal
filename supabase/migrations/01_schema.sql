@@ -26,11 +26,13 @@ END $$;
 -- 1. PROFILES TABLE
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT,
   dob DATE,
   full_name TEXT,
   avatar_url TEXT,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS dob DATE;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS full_name TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
@@ -68,6 +70,7 @@ CREATE TABLE IF NOT EXISTS public.assets (
   sip NUMERIC DEFAULT 0,
   roi NUMERIC DEFAULT 0,
   owner TEXT DEFAULT 'Self',
+  auto_grow BOOLEAN DEFAULT true,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS name TEXT;
@@ -77,6 +80,7 @@ ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS invested NUMERIC DEFAULT 0;
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS sip NUMERIC DEFAULT 0;
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS roi NUMERIC DEFAULT 0;
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS owner TEXT DEFAULT 'Self';
+ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS auto_grow BOOLEAN DEFAULT true;
 ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
 ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "assets_owner_policy" ON public.assets FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
@@ -91,6 +95,8 @@ CREATE TABLE IF NOT EXISTS public.liabilities (
   emi NUMERIC DEFAULT 0,
   type TEXT DEFAULT 'Loan',
   tenure NUMERIC DEFAULT 0,
+  original_amount NUMERIC DEFAULT 0,
+  first_emi_date DATE,
   owner TEXT DEFAULT 'Self',
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -100,6 +106,8 @@ ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS interest_rate NUMERIC DE
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS emi NUMERIC DEFAULT 0;
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'Loan';
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS tenure NUMERIC DEFAULT 0;
+ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS original_amount NUMERIC DEFAULT 0;
+ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS first_emi_date DATE;
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS owner TEXT DEFAULT 'Self';
 ALTER TABLE public.liabilities ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
 ALTER TABLE public.liabilities ENABLE ROW LEVEL SECURITY;
@@ -157,10 +165,14 @@ CREATE TABLE IF NOT EXISTS public.user_settings (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   theme TEXT DEFAULT 'light',
   asset_types JSONB,
+  ai_queries_count INTEGER DEFAULT 0,
+  shares_count INTEGER DEFAULT 0,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 ALTER TABLE public.user_settings ADD COLUMN IF NOT EXISTS theme TEXT DEFAULT 'light';
 ALTER TABLE public.user_settings ADD COLUMN IF NOT EXISTS asset_types JSONB;
+ALTER TABLE public.user_settings ADD COLUMN IF NOT EXISTS ai_queries_count INTEGER DEFAULT 0;
+ALTER TABLE public.user_settings ADD COLUMN IF NOT EXISTS shares_count INTEGER DEFAULT 0;
 ALTER TABLE public.user_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
 
 DELETE FROM public.user_settings a WHERE a.ctid NOT IN (SELECT max(b.ctid) FROM public.user_settings b GROUP BY b.user_id);
@@ -201,9 +213,19 @@ CREATE POLICY "ai_conversations_owner_policy" ON public.ai_conversations FOR ALL
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, avatar_url, updated_at)
-  VALUES (NEW.id, NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'avatar_url', NOW())
-  ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.profiles (id, email, full_name, avatar_url, updated_at)
+  VALUES (
+    NEW.id, 
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', ''), 
+    COALESCE(NEW.raw_user_meta_data->>'avatar_url', NEW.raw_user_meta_data->>'picture', ''), 
+    NOW()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = COALESCE(NULLIF(EXCLUDED.full_name, ''), public.profiles.full_name),
+    avatar_url = COALESCE(NULLIF(EXCLUDED.avatar_url, ''), public.profiles.avatar_url),
+    updated_at = NOW();
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -212,3 +234,19 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================================================
+-- STEP 4: ADMIN STATS VIEW (Bypasses RLS to count all users/queries)
+-- ============================================================================
+DROP VIEW IF EXISTS public.admin_stats_view;
+CREATE VIEW public.admin_stats_view AS
+SELECT 
+  (SELECT count(*) FROM public.profiles) as total_users,
+  (SELECT COALESCE(sum(ai_queries_count), 0) FROM public.user_settings) as total_ai_queries,
+  (SELECT COALESCE(sum(shares_count), 0) FROM public.user_settings) as total_shares,
+  (SELECT COALESCE(sum(value), 0) FROM public.assets) as total_wealth,
+  (SELECT COALESCE(sum(value), 0) FROM public.liabilities) as total_debt,
+  (SELECT count(*) FROM public.goals) as total_goals,
+  (SELECT COALESCE(avg(monthly_income), 0) FROM public.financial_summaries) as avg_monthly_income;
+
+GRANT SELECT ON public.admin_stats_view TO authenticated;

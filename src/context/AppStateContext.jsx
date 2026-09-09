@@ -21,6 +21,8 @@ const initialState = {
     assetTypes: ['Mutual Fund', 'Stocks (India)', 'Fixed Deposit', 'Gold', 'Real Estate', 'EPF', 'PPF', 'Recurring Deposit', 'Cash', 'NPS', 'Debt', 'Small Savings Scheme', 'Sovereign Gold Bond', 'ETF', 'Bonds', 'Sukanya Samriddhi', 'Silver', 'US Stocks', 'Stocks (Foreign)', 'REITs', 'ULIP', 'Crypto'],
     dob: '',
     // NOTE: openaiApiKey is no longer stored in state — AI calls go via Edge Function.
+    aiQueriesCount: 0,
+    sharesCount: 0,
   },
   lastUpdated: 0,
 };
@@ -157,6 +159,8 @@ async function autoMigrateToSupabase(userId, local) {
       user_id: userId,
       theme: local.settings?.theme || 'light',
       asset_types: local.settings?.assetTypes || initialState.settings.assetTypes,
+      ai_queries_count: Number(local.settings?.aiQueriesCount) || 0,
+      shares_count: Number(local.settings?.sharesCount) || 0,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
   );
@@ -197,33 +201,74 @@ async function loadStateFromSupabase(userId) {
   const cfg = settings.data;
   const prof = profile.data;
 
-  return {
-    income: s?.monthly_income ?? 0,
-    expenses: s?.monthly_expenses ?? 0,
-    emi: s?.monthly_emi ?? 0,
+    // ── Asset Auto-Grow Catch-up Logic ──
+    const now = new Date();
+    const assetsToUpdate = [];
 
-    assets: (assets.data || []).map(a => ({
-      id: a.id,
-      name: a.name,
-      value: a.value,
-      currentValue: a.value,
-      type: a.type,
-      invested: a.invested,
-      sip: a.sip,
-      roi: a.roi,
-      owner: a.owner,
-    })),
+    const mappedAssets = (assets.data || []).map(a => {
+      let val = Number(a.value) || 0;
+      const autoGrow = a.auto_grow ?? true;
+      const sip = Number(a.sip) || 0;
+      const roi = Number(a.roi) || 0;
+      
+      if (autoGrow && a.updated_at) {
+        const updatedAt = new Date(a.updated_at);
+        const diffTime = now.getTime() - updatedAt.getTime();
+        const daysElapsed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (daysElapsed > 0 && (roi > 0 || sip > 0)) {
+          // Compound daily for accuracy over elapsed days
+          const dailyRoi = roi / 100 / 365;
+          const dailySip = (sip * 12) / 365;
+          
+          for (let i = 0; i < daysElapsed; i++) {
+            val = val * (1 + dailyRoi) + dailySip;
+          }
+          
+          assetsToUpdate.push({ id: a.id, value: val, updated_at: now.toISOString() });
+        }
+      }
 
-    liabilities: (liabilities.data || []).map(l => ({
-      id: l.id,
-      name: l.name,
-      value: l.value,
-      interest: l.interest_rate,
-      emi: l.emi,
-      type: l.type,
-      tenure: l.tenure,
-      owner: l.owner,
-    })),
+      return {
+        id: a.id,
+        name: a.name,
+        value: val,
+        currentValue: val,
+        type: a.type,
+        invested: a.invested,
+        sip: sip,
+        roi: roi,
+        owner: a.owner,
+        autoGrow: autoGrow,
+      };
+    });
+
+    // Fire and forget DB updates for auto-grown assets
+    if (assetsToUpdate.length > 0) {
+      Promise.all(assetsToUpdate.map(ua => 
+        supabase.from('assets').update({ value: ua.value, updated_at: ua.updated_at }).eq('id', ua.id)
+      )).catch(err => console.error("[AppState] Auto-grow update failed:", err));
+    }
+
+    return {
+      income: s?.monthly_income ?? 0,
+      expenses: s?.monthly_expenses ?? 0,
+      emi: s?.monthly_emi ?? 0,
+
+      assets: mappedAssets,
+
+      liabilities: (liabilities.data || []).map(l => ({
+        id: l.id,
+        name: l.name,
+        value: l.value,
+        originalAmount: l.original_amount,
+        firstEmiDate: l.first_emi_date,
+        interest: l.interest_rate,
+        emi: l.emi,
+        type: l.type,
+        tenure: l.tenure,
+        owner: l.owner,
+      })),
 
     goals: (goals.data || []).map(g => ({
       id: g.id,
@@ -247,6 +292,8 @@ async function loadStateFromSupabase(userId) {
       theme: cfg?.theme ?? 'light',
       assetTypes: mergeAssetTypes(cfg?.asset_types),
       dob: prof?.dob ?? '',
+      aiQueriesCount: cfg?.ai_queries_count ?? 0,
+      sharesCount: cfg?.shares_count ?? 0,
     },
 
     lastUpdated: Date.now(),
@@ -271,6 +318,8 @@ async function supabaseUpsertItem(listName, userId, item) {
         sip: Number(item.sip) || 0,
         roi: Number(item.roi) || 0,
         owner: item.owner || 'Self',
+        auto_grow: item.autoGrow ?? true,
+        updated_at: new Date().toISOString(),
       }, { onConflict: 'id' });
     } else if (listName === 'liabilities') {
       result = await supabase.from('liabilities').upsert({
@@ -278,6 +327,8 @@ async function supabaseUpsertItem(listName, userId, item) {
         user_id: userId,
         name: item.name || 'Unnamed',
         value: Number(item.value) || 0,
+        original_amount: Number(item.originalAmount) || Number(item.value) || 0,
+        first_emi_date: item.firstEmiDate || null,
         interest_rate: Number(item.interest) || 0,
         emi: Number(item.emi) || 0,
         type: item.type || 'Loan',
@@ -599,6 +650,14 @@ export function AppStateProvider({ children }) {
     }
   }, []);
 
+  const updateSettings = useCallback((field, value) => {
+    setState(prev => ({
+      ...prev,
+      settings: { ...prev.settings, [field]: value },
+      lastUpdated: Date.now(),
+    }));
+  }, []);
+
   return (
     <AppStateContext.Provider value={{
       state,
@@ -606,6 +665,7 @@ export function AppStateProvider({ children }) {
       syncing,
       updateField,
       updateProtection,
+      updateSettings,
       addItem,
       removeItem,
       updateItem,
@@ -653,6 +713,8 @@ async function syncStateToSupabase(userId, state) {
         user_id: userId,
         theme: state.settings?.theme || 'light',
         asset_types: state.settings?.assetTypes || initialState.settings.assetTypes,
+        ai_queries_count: state.settings?.aiQueriesCount || 0,
+        shares_count: state.settings?.sharesCount || 0,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' }),
 

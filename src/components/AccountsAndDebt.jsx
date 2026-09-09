@@ -91,6 +91,23 @@ const autoCalcEmi = (principal, rate, years) => {
   return Math.round(emi).toString();
 };
 
+const calcOutstanding = (principal, rate, emi, startDate) => {
+  const p = parseFloat(principal);
+  const r = (parseFloat(rate) / 100) / 12;
+  const e = parseFloat(emi);
+  if (!p || !r || !e || !startDate) return p || 0;
+  
+  const d = new Date(startDate + '-01');
+  const now = new Date();
+  let monthsPassed = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+  if (monthsPassed < 0) monthsPassed = 0;
+  
+  const factor = Math.pow(1 + r, monthsPassed);
+  let balance = p * factor - (e / r) * (factor - 1);
+  if (balance < 0) balance = 0;
+  return Math.round(balance).toString();
+};
+
 export default function AccountsAndDebt() {
   const { state, updateField, addItem, removeItem, updateItem } = useAppState();
   const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Stocks (India)', 'Fixed Deposit', 'Gold', 'Real Estate', 'EPF', 'PPF', 'Recurring Deposit', 'Cash', 'NPS', 'Debt', 'Small Savings Scheme', 'Sovereign Gold Bond', 'ETF', 'Bonds', 'Sukanya Samriddhi', 'Silver', 'US Stocks', 'Stocks (Foreign)', 'REITs', 'ULIP', 'Crypto'];
@@ -107,7 +124,7 @@ export default function AccountsAndDebt() {
 
   // ── Asset Add form state ─────────────────────────────────────
   const owners = ['Self', 'Spouse', 'Child', 'Parent', 'Joint'];
-  const [addAsset, setAddAsset] = useState({ name: '', invested: '', current: '', sip: '', roi: '', type: assetTypes[0], owner: owners[0] });
+  const [addAsset, setAddAsset] = useState({ name: '', invested: '', current: '', sip: '', roi: '', type: assetTypes[0], owner: owners[0], autoGrow: true });
   const [showAddAsset, setShowAddAsset] = useState(false);
   const [assetFormAttempted, setAssetFormAttempted] = useState(false);
 
@@ -117,7 +134,7 @@ export default function AccountsAndDebt() {
   const [editAssetAttempted, setEditAssetAttempted] = useState(false);
 
   // ── Liability Add form state ─────────────────────────────────
-  const [addLiab, setAddLiab] = useState({ name: '', value: '', emi: '', rate: '', tenure: '', owner: owners[0] });
+  const [addLiab, setAddLiab] = useState({ name: '', value: '', originalAmount: '', firstEmiDate: '', emi: '', rate: '', tenure: '', owner: owners[0] });
   const [showAddLiab, setShowAddLiab] = useState(false);
   const [liabFormAttempted, setLiabFormAttempted] = useState(false);
 
@@ -129,7 +146,7 @@ export default function AccountsAndDebt() {
   // ── Handle Add Asset ────────────────────────────────────────
   const handleAddAsset = () => {
     setAssetFormAttempted(true);
-    if (!addAsset.name || !addAsset.current) return;
+    if (!addAsset.name || !addAsset.current || (addAsset.autoGrow && !addAsset.sip)) return;
     setAssetFormAttempted(false);
     addItem('assets', {
       name: addAsset.name,
@@ -139,8 +156,9 @@ export default function AccountsAndDebt() {
       sip: parseFloat(addAsset.sip) || 0,
       roi: parseFloat(addAsset.roi) || 0,
       owner: addAsset.owner,
+      auto_grow: addAsset.autoGrow,
     });
-    setAddAsset({ name: '', invested: '', current: '', sip: '', roi: '', type: assetTypes[0], owner: owners[0] });
+    setAddAsset({ name: '', invested: '', current: '', sip: '', roi: '', type: assetTypes[0], owner: owners[0], autoGrow: true });
     setShowAddAsset(false);
   };
 
@@ -156,13 +174,14 @@ export default function AccountsAndDebt() {
       sip: a.sip ?? '',
       roi: a.roi ?? '',
       owner: a.owner || owners[0],
+      autoGrow: a.auto_grow ?? true,
     });
     setEditingLiabId(null); // close any open liability editor
   };
 
   const saveEditAsset = () => {
     setEditAssetAttempted(true);
-    if (!editAsset.name || !editAsset.current) return;
+    if (!editAsset.name || !editAsset.current || (editAsset.autoGrow && !editAsset.sip)) return;
     setEditAssetAttempted(false);
     updateItem('assets', editingAssetId, {
       name: editAsset.name,
@@ -172,6 +191,7 @@ export default function AccountsAndDebt() {
       sip: parseFloat(editAsset.sip) || 0,
       roi: parseFloat(editAsset.roi) || 0,
       owner: editAsset.owner,
+      auto_grow: editAsset.autoGrow,
     });
     setEditingAssetId(null);
   };
@@ -179,16 +199,18 @@ export default function AccountsAndDebt() {
   // ── Handle Add Liability ─────────────────────────────────────
   const handleAddLiab = () => {
     setLiabFormAttempted(true);
-    if (!addLiab.name || !addLiab.value) return;
+    if (!addLiab.name) return;
     setLiabFormAttempted(false);
     addItem('liabilities', {
       name: addLiab.name,
-      value: parseFloat(addLiab.value),
+      value: parseFloat(calcOutstanding(addLiab.originalAmount, addLiab.rate, addLiab.emi, addLiab.firstEmiDate)) || parseFloat(addLiab.originalAmount) || 0,
+      original_amount: parseFloat(addLiab.originalAmount) || 0,
+      first_emi_date: addLiab.firstEmiDate || null,
       emi: parseFloat(addLiab.emi) || 0,
       interest: parseFloat(addLiab.rate) || 0,
       owner: addLiab.owner,
     });
-    setAddLiab({ name: '', value: '', emi: '', rate: '', owner: owners[0] });
+    setAddLiab({ name: '', value: '', originalAmount: '', firstEmiDate: '', emi: '', rate: '', owner: owners[0] });
     setShowAddLiab(false);
   };
 
@@ -196,17 +218,27 @@ export default function AccountsAndDebt() {
   const openEditLiab = (l) => {
     setEditingLiabId(l.id);
     setEditLiabAttempted(false);
-    setEditLiab({ name: l.name, value: l.value, emi: l.emi ?? '', rate: l.interest ?? '', owner: l.owner || owners[0] });
+    setEditLiab({ 
+      name: l.name, 
+      value: l.value, 
+      originalAmount: l.original_amount ?? '',
+      firstEmiDate: l.first_emi_date ?? '',
+      emi: l.emi ?? '', 
+      rate: l.interest ?? '', 
+      owner: l.owner || owners[0] 
+    });
     setEditingAssetId(null); // close any open asset editor
   };
 
   const saveEditLiab = () => {
     setEditLiabAttempted(true);
-    if (!editLiab.name || !editLiab.value) return;
+    if (!editLiab.name) return;
     setEditLiabAttempted(false);
     updateItem('liabilities', editingLiabId, {
       name: editLiab.name,
-      value: parseFloat(editLiab.value),
+      value: parseFloat(calcOutstanding(editLiab.originalAmount, editLiab.rate, editLiab.emi, editLiab.firstEmiDate)) || parseFloat(editLiab.originalAmount) || 0,
+      original_amount: parseFloat(editLiab.originalAmount) || 0,
+      first_emi_date: editLiab.firstEmiDate || null,
       emi: parseFloat(editLiab.emi) || 0,
       interest: parseFloat(editLiab.rate) || 0,
       owner: editLiab.owner,
@@ -280,7 +312,32 @@ export default function AccountsAndDebt() {
                     <input type="text" placeholder="e.g. Home Loan" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.name)}`} value={addLiab.name} onChange={e => setAddLiab(p => ({ ...p, name: e.target.value }))} />
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-2">
+                <div className="col-span-2 sm:col-span-1">
+                  <Field label="Original Loan (₹)">
+                    <input type="number" placeholder="Original Amount" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.originalAmount)}`} value={addLiab.originalAmount} onChange={e => setAddLiab(p => ({ ...p, originalAmount: e.target.value }))} />
+                  </Field>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <Field label="First EMI Month">
+                    <input type="month" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.firstEmiDate)}`} value={addLiab.firstEmiDate} onChange={e => setAddLiab(p => ({ ...p, firstEmiDate: e.target.value }))} />
+                  </Field>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <Field label="Outstanding (₹) - Auto">
+                    <input type="number" readOnly className={`${inputCls} bg-slate-50 dark:bg-slate-900 cursor-not-allowed`} value={calcOutstanding(addLiab.originalAmount, addLiab.rate, addLiab.emi, addLiab.firstEmiDate) || addLiab.originalAmount || ''} />
+                  </Field>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <Field label="Interest Rate (%)">
+                    <input type="number" placeholder="0.00" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.rate)}`} value={addLiab.rate} onChange={e => setAddLiab(p => ({ ...p, rate: e.target.value }))} />
+                  </Field>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <Field label="Tenure (Yrs)">
+                    <input type="number" placeholder="20" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.tenure)}`} value={addLiab.tenure || ''} onChange={e => setAddLiab(p => ({ ...p, tenure: e.target.value }))} />
+                  </Field>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
                   <Field label="Owner">
                     <select className={inputCls} value={addLiab.owner} onChange={e => setAddLiab(p => ({ ...p, owner: e.target.value }))}>
                       {owners.map(o => <option key={o} value={o}>{o}</option>)}
@@ -288,26 +345,11 @@ export default function AccountsAndDebt() {
                   </Field>
                 </div>
                 <div className="col-span-2 sm:col-span-1">
-                  <Field label="Outstanding (₹)">
-                    <input type="number" placeholder="0" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.value)}`} value={addLiab.value} onChange={e => setAddLiab(p => ({ ...p, value: e.target.value }))} />
-                  </Field>
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <Field label="Interest Rate (%)">
-                    <input type="number" placeholder="0.00" className={inputCls} value={addLiab.rate} onChange={e => setAddLiab(p => ({ ...p, rate: e.target.value }))} />
-                  </Field>
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <Field label="Tenure (Yrs)">
-                    <input type="number" placeholder="20" className={inputCls} value={addLiab.tenure || ''} onChange={e => setAddLiab(p => ({ ...p, tenure: e.target.value }))} />
-                  </Field>
-                </div>
-                <div className="col-span-2 sm:col-span-1">
                   <Field label="EMI (₹)">
                     <div className="relative">
-                      <input type="number" placeholder="0" className={`${inputCls} pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} value={addLiab.emi} onChange={e => setAddLiab(p => ({ ...p, emi: e.target.value }))} />
+                      <input type="number" placeholder="0" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.emi)} pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} value={addLiab.emi} onChange={e => setAddLiab(p => ({ ...p, emi: e.target.value }))} />
                       <button 
-                        onClick={() => setAddLiab(p => ({ ...p, emi: autoCalcEmi(p.value, p.rate, p.tenure) || p.emi }))}
+                        onClick={() => setAddLiab(p => ({ ...p, emi: autoCalcEmi(p.originalAmount || p.value, p.rate, p.tenure) || p.emi }))}
                         title="Auto-calculate EMI"
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors p-1"
                       >
@@ -318,9 +360,7 @@ export default function AccountsAndDebt() {
                 </div>
               </div>
               <div className="flex justify-between items-center mt-4">
-                {liabFormAttempted && (!addLiab.name || !addLiab.value) ? (
-                  <span className="text-xs text-rose-500 font-medium">Please fill in Loan Name and Outstanding.</span>
-                ) : <div />}
+                <div />
                 <button onClick={handleAddLiab} className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 transition-colors">
                   <Plus size={14} /> Add Loan
                 </button>
@@ -393,7 +433,32 @@ export default function AccountsAndDebt() {
                           <input autoFocus type="text" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.name)}`} value={editLiab.name} onChange={e => setEditLiab(p => ({ ...p, name: e.target.value }))} />
                         </Field>
                       </div>
-                      <div className="col-span-2 sm:col-span-2">
+                      <div className="col-span-2 sm:col-span-1">
+                        <Field label="Original Loan (₹)">
+                          <input type="number" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.originalAmount)}`} value={editLiab.originalAmount} onChange={e => setEditLiab(p => ({ ...p, originalAmount: e.target.value }))} />
+                        </Field>
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
+                        <Field label="First EMI Month">
+                          <input type="month" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.firstEmiDate)}`} value={editLiab.firstEmiDate} onChange={e => setEditLiab(p => ({ ...p, firstEmiDate: e.target.value }))} />
+                        </Field>
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
+                        <Field label="Outstanding (₹) - Auto">
+                          <input type="number" readOnly className={`${inputCls} bg-slate-50 dark:bg-slate-900 cursor-not-allowed`} value={calcOutstanding(editLiab.originalAmount, editLiab.rate, editLiab.emi, editLiab.firstEmiDate) || editLiab.originalAmount || ''} />
+                        </Field>
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
+                        <Field label="Interest Rate (%)">
+                          <input type="number" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.rate)}`} value={editLiab.rate} onChange={e => setEditLiab(p => ({ ...p, rate: e.target.value }))} />
+                        </Field>
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
+                        <Field label="Tenure (Yrs)">
+                          <input type="number" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.tenure)}`} value={editLiab.tenure || ''} onChange={e => setEditLiab(p => ({ ...p, tenure: e.target.value }))} />
+                        </Field>
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
                         <Field label="Owner">
                           <select className={inputCls} value={editLiab.owner} onChange={e => setEditLiab(p => ({ ...p, owner: e.target.value }))}>
                             {owners.map(o => <option key={o} value={o}>{o}</option>)}
@@ -401,26 +466,11 @@ export default function AccountsAndDebt() {
                         </Field>
                       </div>
                       <div className="col-span-2 sm:col-span-1">
-                        <Field label="Outstanding (₹)">
-                          <input type="number" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.value)}`} value={editLiab.value} onChange={e => setEditLiab(p => ({ ...p, value: e.target.value }))} />
-                        </Field>
-                      </div>
-                      <div className="col-span-2 sm:col-span-1">
-                        <Field label="Interest Rate (%)">
-                          <input type="number" className={inputCls} value={editLiab.rate} onChange={e => setEditLiab(p => ({ ...p, rate: e.target.value }))} />
-                        </Field>
-                      </div>
-                      <div className="col-span-2 sm:col-span-1">
-                        <Field label="Tenure (Yrs)">
-                          <input type="number" className={inputCls} value={editLiab.tenure || ''} onChange={e => setEditLiab(p => ({ ...p, tenure: e.target.value }))} />
-                        </Field>
-                      </div>
-                      <div className="col-span-2 sm:col-span-1">
                         <Field label="EMI (₹)">
                           <div className="relative">
-                            <input type="number" className={`${inputCls} pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} value={editLiab.emi} onChange={e => setEditLiab(p => ({ ...p, emi: e.target.value }))} />
+                            <input type="number" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.emi)} pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} value={editLiab.emi} onChange={e => setEditLiab(p => ({ ...p, emi: e.target.value }))} />
                             <button 
-                              onClick={() => setEditLiab(p => ({ ...p, emi: autoCalcEmi(p.value, p.rate, p.tenure) || p.emi }))}
+                              onClick={() => setEditLiab(p => ({ ...p, emi: autoCalcEmi(p.originalAmount || p.value, p.rate, p.tenure) || p.emi }))}
                               title="Auto-calculate EMI"
                               className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors p-1"
                             >
@@ -431,9 +481,7 @@ export default function AccountsAndDebt() {
                       </div>
                     </div>
                     <div className="flex justify-between items-center mt-2">
-                      {editLiabAttempted && (!editLiab.name || !editLiab.value) ? (
-                        <span className="text-xs text-rose-500 font-medium">Please fill in Loan Name and Outstanding.</span>
-                      ) : <div />}
+                      <div />
                       <div className="flex justify-end gap-2">
                         <button onClick={() => setEditingLiabId(null)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">
                           <X size={13} /> Cancel
@@ -495,23 +543,46 @@ export default function AccountsAndDebt() {
                     </select>
                   </Field>
                 </div>
-                <Field label="Invested (₹)">
-                  <input type="number" placeholder="0" className={inputCls} value={addAsset.invested} onChange={e => setAddAsset(p => ({ ...p, invested: e.target.value }))} />
-                </Field>
-                <Field label="Current Value (₹)">
-                  <input type="number" placeholder="0" className={`${inputCls} ${getErrCls(assetFormAttempted, addAsset.current)}`} value={addAsset.current} onChange={e => setAddAsset(p => ({ ...p, current: e.target.value }))} />
-                </Field>
-                <Field label="Monthly SIP (₹)">
-                  <input type="number" placeholder="0" className={inputCls} value={addAsset.sip} onChange={e => setAddAsset(p => ({ ...p, sip: e.target.value }))} />
-                </Field>
-                <Field label="Exp. ROI (%)">
-                  <input type="number" placeholder="12" className={inputCls} value={addAsset.roi} onChange={e => setAddAsset(p => ({ ...p, roi: e.target.value }))} />
-                </Field>
+                <div className="col-span-2 sm:col-span-1">
+                  <Field label="Invested (₹)">
+                    <input type="number" placeholder="0" className={`${inputCls} ${getErrCls(assetFormAttempted, addAsset.invested)}`} value={addAsset.invested} onChange={e => setAddAsset(p => ({ ...p, invested: e.target.value }))} />
+                  </Field>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <Field label="Current Value (₹)">
+                    <input type="number" placeholder="0" className={`${inputCls} ${getErrCls(assetFormAttempted, addAsset.current)}`} value={addAsset.current} onChange={e => setAddAsset(p => ({ ...p, current: e.target.value }))} />
+                  </Field>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <Field label="Exp. ROI (%)">
+                    <input type="number" placeholder="12" className={`${inputCls} ${getErrCls(assetFormAttempted, addAsset.roi)}`} value={addAsset.roi} onChange={e => setAddAsset(p => ({ ...p, roi: e.target.value }))} />
+                  </Field>
+                </div>
+                <div className="col-span-2 sm:col-span-1 flex flex-col">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Monthly SIP (₹)</label>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      <input 
+                        type="checkbox" 
+                        className="w-3 h-3 text-indigo-600 border-slate-300 rounded focus:ring-indigo-600 dark:bg-slate-700 dark:border-slate-600"
+                        checked={addAsset.autoGrow} 
+                        onChange={e => setAddAsset(p => ({ ...p, autoGrow: e.target.checked }))} 
+                      />
+                      Active
+                    </label>
+                  </div>
+                  <input 
+                    type="number" 
+                    placeholder="0" 
+                    className={`${inputCls} ${addAsset.autoGrow && !addAsset.sip && assetFormAttempted ? '!border-rose-500 !ring-rose-500' : ''} ${!addAsset.autoGrow ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : ''}`} 
+                    disabled={!addAsset.autoGrow}
+                    value={addAsset.sip} 
+                    onChange={e => setAddAsset(p => ({ ...p, sip: e.target.value }))} 
+                  />
+                </div>
               </div>
               <div className="flex justify-between items-center mt-4">
-                {assetFormAttempted && (!addAsset.name || !addAsset.current) ? (
-                  <span className="text-xs text-rose-500 font-medium">Please fill in Asset Name and Current Value.</span>
-                ) : <div />}
+                <div />
                 <button onClick={handleAddAsset} className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
                   <Plus size={14} /> Add Asset
                 </button>
@@ -613,23 +684,52 @@ export default function AccountsAndDebt() {
                             </select>
                           </Field>
                         </div>
-                        <Field label="Invested (₹)">
-                          <input type="number" className={inputCls} value={editAsset.invested} onChange={e => setEditAsset(p => ({ ...p, invested: e.target.value }))} />
-                        </Field>
-                        <Field label="Current Value (₹)">
-                          <input type="number" className={`${inputCls} ${getErrCls(editAssetAttempted, editAsset.current)}`} value={editAsset.current} onChange={e => setEditAsset(p => ({ ...p, current: e.target.value }))} />
-                        </Field>
-                        <Field label="Monthly SIP (₹)">
-                          <input type="number" className={inputCls} value={editAsset.sip} onChange={e => setEditAsset(p => ({ ...p, sip: e.target.value }))} />
-                        </Field>
-                        <Field label="Exp. ROI (%)">
-                          <input type="number" className={inputCls} value={editAsset.roi} onChange={e => setEditAsset(p => ({ ...p, roi: e.target.value }))} />
-                        </Field>
+                        <div className="col-span-2 sm:col-span-1">
+                          <Field label="Owner">
+                            <select className={inputCls} value={editAsset.owner} onChange={e => setEditAsset(p => ({ ...p, owner: e.target.value }))}>
+                              {owners.map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          </Field>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                          <Field label="Invested (₹)">
+                            <input type="number" className={`${inputCls} ${getErrCls(editAssetAttempted, editAsset.invested)}`} value={editAsset.invested} onChange={e => setEditAsset(p => ({ ...p, invested: e.target.value }))} />
+                          </Field>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                          <Field label="Current Value (₹)">
+                            <input type="number" className={`${inputCls} ${getErrCls(editAssetAttempted, editAsset.current)}`} value={editAsset.current} onChange={e => setEditAsset(p => ({ ...p, current: e.target.value }))} />
+                          </Field>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                          <Field label="Exp. ROI (%)">
+                            <input type="number" className={`${inputCls} ${getErrCls(editAssetAttempted, editAsset.roi)}`} value={editAsset.roi} onChange={e => setEditAsset(p => ({ ...p, roi: e.target.value }))} />
+                          </Field>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1 flex flex-col">
+                          <div className="flex justify-between items-center mb-1.5">
+                            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Monthly SIP (₹)</label>
+                            <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                              <input 
+                                type="checkbox" 
+                                className="w-3 h-3 text-indigo-600 border-slate-300 rounded focus:ring-indigo-600 dark:bg-slate-700 dark:border-slate-600"
+                                checked={editAsset.autoGrow} 
+                                onChange={e => setEditAsset(p => ({ ...p, autoGrow: e.target.checked }))} 
+                              />
+                              Active
+                            </label>
+                          </div>
+                          <input 
+                            type="number" 
+                            className={`${inputCls} ${editAsset.autoGrow && !editAsset.sip && editAssetAttempted ? '!border-rose-500 !ring-rose-500' : ''} ${!editAsset.autoGrow ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : ''}`} 
+                            disabled={!editAsset.autoGrow}
+                            value={editAsset.sip} 
+                            onChange={e => setEditAsset(p => ({ ...p, sip: e.target.value }))} 
+                          />
+                        </div>
                       </div>
                       <div className="flex justify-between items-center mt-2">
-                        {editAssetAttempted && (!editAsset.name || !editAsset.current) ? (
-                          <span className="text-xs text-rose-500 font-medium">Please fill in Asset Name and Current Value.</span>
-                        ) : <div />}
+                        <div />
                         <div className="flex justify-end gap-2">
                           <button onClick={() => setEditingAssetId(null)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">
                             <X size={13} /> Cancel
