@@ -5,6 +5,7 @@ import { AppStateProvider } from './context/AppStateContext';
 import { AuthProvider } from './context/AuthContext';
 import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
+import AuthManager from './components/AuthManager';
 import AccountsAndDebt from './components/AccountsAndDebt';
 import GoalTracker from './components/GoalTracker';
 import Protection from './components/Protection';
@@ -21,6 +22,8 @@ function App() {
     return window.location.hash === '#legal' ? 'legal' : 'dashboard';
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [welcomeDone, setWelcomeDone] = useState(() => !!localStorage.getItem('fingoal_welcome_dismissed_v1'));
 
   useEffect(() => {
     initializeGoogleDriveSync();
@@ -34,7 +37,7 @@ function App() {
 
   const renderView = () => {
     switch (currentView) {
-      case 'dashboard': return <Dashboard />;
+      case 'dashboard': return <Dashboard setCurrentView={setCurrentView} />;
       case 'accounts': return <AccountsAndDebt />;
       case 'goals': return <GoalTracker />;
       case 'fire': return <FireDashboard />;
@@ -51,9 +54,10 @@ function App() {
     <AuthProvider>
       <AppStateProvider>
         <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
+          <AuthManager showAuth={showAuth} setShowAuth={setShowAuth} welcomeDone={welcomeDone} />
 
           {/* Layer 1: First-visit Welcome Banner */}
-          <WelcomeBanner onNavigate={(view) => setCurrentView(view)} />
+          <WelcomeBanner onNavigate={(view) => setCurrentView(view)} onComplete={() => setWelcomeDone(true)} />
 
           {/* Layer 2: PWA Install Prompt */}
           <InstallPrompt />
@@ -78,6 +82,8 @@ function App() {
             setCurrentView={setCurrentView}
             isMobileOpen={isMobileMenuOpen}
             setIsMobileOpen={setIsMobileMenuOpen}
+            showAuth={showAuth}
+            setShowAuth={setShowAuth}
           />
 
           <main className="flex-1 p-4 md:p-8 ml-0 md:ml-64 mt-14 md:mt-0 max-w-[100vw] overflow-x-hidden">

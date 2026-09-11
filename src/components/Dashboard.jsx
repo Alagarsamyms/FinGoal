@@ -6,10 +6,10 @@ import UnlinkedAssetsProjection from './UnlinkedAssetsProjection';
 import PortfolioDiversification from './PortfolioDiversification';
 import CashflowFunnel from './CashflowFunnel';
 
-export default function Dashboard() {
+export default function Dashboard({ setCurrentView }) {
   return (
     <div className="max-w-7xl mx-auto space-y-6 md:space-y-8 pb-20">
-      <ExecutiveSummary />
+      <ExecutiveSummary setCurrentView={setCurrentView} />
       
       {/* Portfolio & Cashflow Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">

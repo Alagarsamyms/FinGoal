@@ -2,14 +2,11 @@ import { useState } from 'react';
 import { PieChart, Activity, Wallet, Target, Flame, Settings, ShieldCheck, Sparkles, X, Sun, Moon, LogIn, LogOut, User, FileText, Share2 } from 'lucide-react';
 import { useAppState } from '../context/AppStateContext';
 import { useAuth } from '../context/AuthContext';
-import AuthModal from './AuthModal';
 
-export default function Sidebar({ currentView, setCurrentView, isMobileOpen, setIsMobileOpen }) {
+export default function Sidebar({ currentView, setCurrentView, isMobileOpen, setIsMobileOpen, showAuth, setShowAuth }) {
   const { state, updateField } = useAppState();
   const { user, isGuest, signOut } = useAuth();
   const theme = state.settings?.theme || 'light';
-
-  const [showAuth, setShowAuth] = useState(false);
 
   const toggleTheme = () => {
     updateField('settings', { ...state.settings, theme: theme === 'light' ? 'dark' : 'light' });
@@ -146,15 +143,6 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
           )}
         </div>
       </aside>
-
-      {/* Auth Modal */}
-      {showAuth && (
-        <AuthModal
-          isOpen={showAuth}
-          onClose={() => setShowAuth(false)}
-          onSuccess={() => setShowAuth(false)}
-        />
-      )}
     </>
   );
 }
