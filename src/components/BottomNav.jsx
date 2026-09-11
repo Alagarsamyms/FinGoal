@@ -1,14 +1,14 @@
 import React from 'react';
-import { Activity, Wallet, Sparkles, Flame } from 'lucide-react';
+import { Activity, Wallet, Sparkles, Flame, MoreHorizontal } from 'lucide-react';
 
-export default function BottomNav({ currentView, setCurrentView }) {
-  const navItem = (id, label, IconComponent) => {
+export default function BottomNav({ currentView, setCurrentView, setIsMobileOpen }) {
+  const navItem = (id, label, IconComponent, onClick) => {
     const isActive = currentView === id;
     
     return (
       <button 
         key={id}
-        onClick={() => setCurrentView(id)} 
+        onClick={onClick || (() => setCurrentView(id))} 
         className="flex flex-col items-center justify-center flex-1 h-full pt-1 pb-1 transition-colors relative"
       >
         <div className={`p-1 rounded-full transition-all duration-300 ${isActive ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 scale-110' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
@@ -30,6 +30,7 @@ export default function BottomNav({ currentView, setCurrentView }) {
       {navItem('accounts', 'Accounts', Wallet)}
       {navItem('simulation', 'Advisor', Sparkles)}
       {navItem('fire', 'FIRE', Flame)}
+      {navItem(null, 'More', MoreHorizontal, () => setIsMobileOpen(true))}
     </div>
   );
 }

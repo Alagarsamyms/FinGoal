@@ -25,6 +25,7 @@ export function AuthProvider({ children }) {
           if (user.email) {
             await OneSignal.User.addEmail(user.email);
           }
+          // Note: Push prompt is deferred — triggered after user adds their first asset
         } catch (err) {
           console.error('OneSignal login error:', err);
         }

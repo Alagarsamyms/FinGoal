@@ -91,7 +91,7 @@ function App() {
             {renderView()}
           </main>
 
-          <BottomNav currentView={currentView} setCurrentView={setCurrentView} />
+          <BottomNav currentView={currentView} setCurrentView={setCurrentView} setIsMobileOpen={setIsMobileMenuOpen} />
         </div>
       </AppStateProvider>
     </AuthProvider>
