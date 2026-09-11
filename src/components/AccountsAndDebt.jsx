@@ -179,12 +179,6 @@ export default function AccountsAndDebt() {
     });
     setAddAsset({ name: '', invested: '', current: '', sip: '', roi: '', type: assetTypes[0], owner: owners[0], autoGrow: true });
     setShowAddAsset(false);
-    // 🔔 Contextual push prompt: show after user adds their FIRST asset (high-trust moment)
-    if (state.assets.length === 0 && window.OneSignalDeferred) {
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        try { await OneSignal.Slidedown.promptPush(); } catch (e) { /* silent */ }
-      });
-    }
   };
 
   // ── Open inline edit for an asset ───────────────────────────

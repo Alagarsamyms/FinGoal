@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../utils/supabase';
-import { X, Mail, Lock, User, Loader2, LogIn, UserPlus, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { X, Mail, Lock, User, Loader2, LogIn, UserPlus, Eye, EyeOff, AlertCircle, CheckCircle2, ShieldCheck, ShieldOff } from 'lucide-react';
 
 /**
  * AuthModal — Signup / Login modal for FinGoal OS
@@ -123,12 +123,10 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'lo
             </div>
           </div>
           {/* Privacy Trust Badge */}
-          <div className="mt-3 flex items-center gap-3 text-[11px] text-indigo-100/90 bg-white/10 rounded-lg px-3 py-2">
-            <span>🔒 No bank linking required</span>
-            <span className="text-white/30">·</span>
-            <span>🗄️ Data encrypted & secure</span>
-            <span className="text-white/30">·</span>
-            <span>🚫 Never sold</span>
+          <div className="mt-4 flex flex-wrap justify-center items-center gap-x-5 gap-y-2 text-[10px] sm:text-[11px] font-medium text-indigo-100 bg-black/10 rounded-xl px-4 py-3">
+            <span className="flex items-center gap-1.5"><Lock size={13} className="opacity-70" /> No bank linking</span>
+            <span className="flex items-center gap-1.5"><ShieldCheck size={13} className="opacity-70" /> Encrypted data</span>
+            <span className="flex items-center gap-1.5"><ShieldOff size={13} className="opacity-70" /> Never sold</span>
           </div>
         </div>
 
@@ -148,15 +146,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'lo
               </button>
             ))}
           </div>
-
-          {tab === 'signup' && (
-            <p className="text-[11px] text-center text-slate-500 dark:text-slate-400 mb-5 px-2 leading-relaxed">
-              By continuing, you agree to our{' '}
-              <a href="#legal" onClick={onClose} className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Terms of Service</a>
-              {' '}and{' '}
-              <a href="#legal" onClick={onClose} className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Privacy Policy</a>.
-            </p>
-          )}
 
           {/* Google OAuth */}
           <button
@@ -265,21 +254,22 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'lo
             </button>
           )}
 
-          <div className="mt-6 text-center text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="mt-6 text-center text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
             By continuing, you agree to our{' '}
             <button 
               onClick={() => { window.location.hash = '#legal'; onClose(); }} 
-              className="text-indigo-600 dark:text-indigo-400 hover:underline"
+              className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
             >
               Terms of Service
             </button>{' '}
-            and{' '}
+            &{' '}
             <button 
               onClick={() => { window.location.hash = '#legal'; onClose(); }} 
-              className="text-indigo-600 dark:text-indigo-400 hover:underline"
+              className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
             >
               Privacy Policy
-            </button>.
+            </button>,
+            and consent to receive account updates via email and push notifications.
           </div>
         </div>
       </div>

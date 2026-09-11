@@ -17,6 +17,7 @@ import LegalPage from './components/LegalPage';
 import AdminDashboard from './components/AdminDashboard';
 import { initializeGoogleDriveSync } from './utils/gdrive';
 import { WelcomeBanner } from './components/Onboarding';
+import FireEducationModal from './components/FireEducationModal';
 
 function App() {
   const [currentView, setCurrentView] = useState(() => {
@@ -25,6 +26,7 @@ function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [welcomeDone, setWelcomeDone] = useState(() => !!localStorage.getItem('fingoal_welcome_dismissed_v1'));
+  const [showEduModal, setShowEduModal] = useState(false);
 
   useEffect(() => {
     initializeGoogleDriveSync();
@@ -36,12 +38,20 @@ function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  useEffect(() => {
+    // Trigger Education Modal 30 seconds after welcome & auth popups are cleared
+    if (!localStorage.getItem('hasSeenFireEdu') && welcomeDone && !showAuth) {
+      const timer = setTimeout(() => setShowEduModal(true), 30000);
+      return () => clearTimeout(timer);
+    }
+  }, [welcomeDone, showAuth]);
+
   const renderView = () => {
     switch (currentView) {
       case 'dashboard': return <Dashboard setCurrentView={setCurrentView} />;
       case 'accounts': return <AccountsAndDebt />;
       case 'goals': return <GoalTracker />;
-      case 'fire': return <FireDashboard />;
+      case 'fire': return <FireDashboard setCurrentView={setCurrentView} />;
       case 'protection': return <Protection />;
       case 'simulation': return <Simulation />;
       case 'settings': return <Settings setCurrentView={setCurrentView} />;
@@ -92,6 +102,9 @@ function App() {
           </main>
 
           <BottomNav currentView={currentView} setCurrentView={setCurrentView} setIsMobileOpen={setIsMobileMenuOpen} />
+          
+          {/* Layer 3: Educational Modal */}
+          <FireEducationModal isOpen={showEduModal} onClose={() => { setShowEduModal(false); localStorage.setItem('hasSeenFireEdu', 'true'); }} />
         </div>
       </AppStateProvider>
     </AuthProvider>
