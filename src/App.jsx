@@ -51,7 +51,7 @@ function App() {
       case 'dashboard': return <Dashboard setCurrentView={setCurrentView} />;
       case 'accounts': return <AccountsAndDebt />;
       case 'goals': return <GoalTracker />;
-      case 'fire': return <FireDashboard />;
+      case 'fire': return <FireDashboard setCurrentView={setCurrentView} />;
       case 'protection': return <Protection />;
       case 'simulation': return <Simulation />;
       case 'settings': return <Settings setCurrentView={setCurrentView} />;

@@ -121,13 +121,19 @@ export default function FireDashboard() {
           <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">The FIRE Engine</h1>
           <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1">Financial Independence, Retire Early.</p>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-amber-200 dark:border-amber-900/50 p-6 md:p-8 text-center flex flex-col items-center transition-colors">
-          <AlertTriangle className="text-amber-500 dark:text-amber-400 mb-3" size={40} />
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">No Expenses Defined</h2>
-          <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2 max-w-md">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-amber-200 dark:border-amber-900/50 p-6 md:p-8 text-center flex flex-col items-center transition-colors shadow-sm">
+          <AlertTriangle className="text-amber-500 dark:text-amber-400 mb-4" size={48} />
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">No Expenses Defined</h2>
+          <p className="text-base text-slate-600 dark:text-slate-400 mb-6 max-w-md">
             The FIRE algorithm uses your actual Monthly Expenses to calculate your retirement target. 
-            Please add your Monthly Expenses in the <strong className="dark:text-slate-300">Accounts & Debt</strong> tab to unlock this engine.
+            You need to add your data to unlock this engine.
           </p>
+          <button
+            onClick={() => setCurrentView && setCurrentView('accounts')}
+            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20 transition-all transform hover:-translate-y-0.5"
+          >
+            Update Accounts & Debt
+          </button>
         </div>
       </div>
     );

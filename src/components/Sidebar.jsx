@@ -15,7 +15,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
   const handleShare = async () => {
     const shareData = {
       title: 'Wealth For FIRE',
-      text: 'Take control of your financial future! 🔥 Track your net worth, destroy debts, and plan your early retirement with Wealth For FIRE. Join me today!',
+      text: `Take control of your financial future with Wealth For FIRE! 🚀\n\n🎯 What's inside:\n• 🔥 Calculate your exact FIRE number\n• 📉 Destroy Debt by actively tracking it\n• 🥧 Master your Portfolio with smart Asset Allocation\n• 🤖 Get tailored advice from your Personalized AI Advisor\n\nJoin me in building a solid financial command center! 👇`,
       url: window.location.origin,
     };
 
