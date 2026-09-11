@@ -256,6 +256,23 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'lo
               Forgot your password?
             </button>
           )}
+
+          <div className="mt-6 text-center text-[11px] text-slate-500 dark:text-slate-400">
+            By continuing, you agree to our{' '}
+            <button 
+              onClick={() => { window.location.hash = '#legal'; onClose(); }} 
+              className="text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              Terms of Service
+            </button>{' '}
+            and{' '}
+            <button 
+              onClick={() => { window.location.hash = '#legal'; onClose(); }} 
+              className="text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              Privacy Policy
+            </button>.
+          </div>
         </div>
       </div>
     </div>

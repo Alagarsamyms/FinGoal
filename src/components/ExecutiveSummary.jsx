@@ -25,7 +25,7 @@ const formatCurrencyShort = (val) => {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
 };
 
-export default function ExecutiveSummary() {
+export default function ExecutiveSummary({ setCurrentView }) {
   const { state } = useAppState();
 
   const totalIncome = parseFloat(state.income) || 0;
@@ -108,9 +108,12 @@ export default function ExecutiveSummary() {
             Your dashboard is currently empty. To see your Health Score, Net Worth, and FIRE projections, you need to add your income, expenses, and assets.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-700">
-              Go to 'Accounts & Debt' in the sidebar to get started
-            </span>
+            <button 
+              onClick={() => setCurrentView('accounts')}
+              className="text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-6 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all"
+            >
+              Go to 'Accounts & Debt' to get started
+            </button>
           </div>
         </div>
       )}

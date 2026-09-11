@@ -17,6 +17,33 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const linkOneSignal = (user) => {
+    if (window.OneSignalDeferred && user) {
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+          await OneSignal.login(user.id);
+          if (user.email) {
+            await OneSignal.User.addEmail(user.email);
+          }
+        } catch (err) {
+          console.error('OneSignal login error:', err);
+        }
+      });
+    }
+  };
+
+  const unlinkOneSignal = () => {
+    if (window.OneSignalDeferred) {
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+          await OneSignal.logout();
+        } catch (err) {
+          console.error('OneSignal logout error:', err);
+        }
+      });
+    }
+  };
+
   useEffect(() => {
     if (!isSupabaseConfigured()) {
       // No Supabase configured: run as Guest only
@@ -31,6 +58,7 @@ export function AuthProvider({ children }) {
       if (session?.user) {
         identifyUser(session.user.id, session.user.email);
         trackEvent('app_opened', { auth_status: 'signed_in' });
+        linkOneSignal(session.user);
       } else {
         trackEvent('app_opened', { auth_status: 'guest' });
       }
@@ -44,9 +72,11 @@ export function AuthProvider({ children }) {
       if (event === 'SIGNED_IN' && session?.user) {
         identifyUser(session.user.id, session.user.email);
         trackEvent('login_completed', { provider: session.user.app_metadata?.provider || 'email' });
+        linkOneSignal(session.user);
       } else if (event === 'SIGNED_OUT') {
         resetUser();
         trackEvent('logout_completed');
+        unlinkOneSignal();
       }
       setLoading(false);
     });
@@ -59,6 +89,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     setSession(null);
     resetUser();
+    unlinkOneSignal();
   };
 
   const value = {

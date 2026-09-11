@@ -119,7 +119,7 @@ const STEPS = [
   },
 ];
 
-export function WelcomeBanner({ onNavigate }) {
+export function WelcomeBanner({ onNavigate, onComplete }) {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
   const { state } = useAppState();
@@ -140,6 +140,7 @@ export function WelcomeBanner({ onNavigate }) {
   const dismiss = () => {
     localStorage.setItem(WELCOME_KEY, '1');
     setVisible(false);
+    if (onComplete) onComplete();
   };
 
   if (!visible) return null;
