@@ -122,6 +122,14 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'lo
               <p className="text-indigo-200 text-sm">{tab === 'login' ? 'Sign in to access your financial plan' : 'Secure your financial data across all devices'}</p>
             </div>
           </div>
+          {/* Privacy Trust Badge */}
+          <div className="mt-3 flex items-center gap-3 text-[11px] text-indigo-100/90 bg-white/10 rounded-lg px-3 py-2">
+            <span>🔒 No bank linking required</span>
+            <span className="text-white/30">·</span>
+            <span>🗄️ Data encrypted & secure</span>
+            <span className="text-white/30">·</span>
+            <span>🚫 Never sold</span>
+          </div>
         </div>
 
         <div className="px-8 py-6">

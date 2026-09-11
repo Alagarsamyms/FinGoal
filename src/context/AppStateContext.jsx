@@ -658,6 +658,28 @@ export function AppStateProvider({ children }) {
     }));
   }, []);
 
+  // ── OneSignal Net Worth Tags ───────────────────────────────────────────────
+  useEffect(() => {
+    if (window.OneSignalDeferred) {
+      let totalAssets = 0;
+      state.assets?.forEach(a => { totalAssets += parseFloat(a.currentValue ?? a.value ?? 0); });
+      let totalDebt = 0;
+      state.liabilities?.forEach(l => { totalDebt += parseFloat(l.value || 0); });
+      const netWorth = totalAssets - totalDebt;
+
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+          await OneSignal.User.addTags({
+            net_worth: netWorth,
+            asset_count: state.assets?.length || 0
+          });
+        } catch (err) {
+          console.error('[OneSignal] Error adding tags:', err);
+        }
+      });
+    }
+  }, [state.assets, state.liabilities]);
+
   return (
     <AppStateContext.Provider value={{
       state,

@@ -16,6 +16,11 @@ export default function FireDashboard() {
   const [useNetworth, setUseNetworth] = useState(false);
   const [investmentStopAge, setInvestmentStopAge] = useState(50);
 
+  // Scenario B State
+  const [enableScenarioB, setEnableScenarioB] = useState(false);
+  const [swrB, setSwrB] = useState(3.0);
+  const [roiB, setRoiB] = useState(10.0);
+
   // Auto-calculate age from DOB if available
   useEffect(() => {
     if (state.settings?.dob) {
@@ -47,15 +52,11 @@ export default function FireDashboard() {
   const currentCorpus = totalAssets - totalDebt;
   const surplus = income - expenses - emi;
 
-  const projection = useMemo(() => {
-    if (expenses <= 0) return { data: [], fireAge: null, fireCorpus: 0 };
-
-    // Calculate Unlinked Assets logic if toggle is OFF
-    let startCorpus = 0;
-    let startSurplus = 0;
+  const { startCorpus, startSurplus } = useMemo(() => {
+    let corpus = 0;
+    let surp = 0;
 
     if (!useNetworth) {
-      // Logic from UnlinkedAssetsProjection
       const assetAllocations = {};
       state.goals?.forEach(g => {
         if (g.linkedAssets) {
@@ -72,25 +73,39 @@ export default function FireDashboard() {
         const val = parseFloat(a.currentValue || a.value || 0);
         const sip = parseFloat(a.sip || 0);
 
-        startCorpus += (val * (unallocatedPercent / 100));
-        startSurplus += (sip * (unallocatedPercent / 100));
+        corpus += (val * (unallocatedPercent / 100));
+        surp += (sip * (unallocatedPercent / 100));
       });
     } else {
-      startCorpus = currentCorpus > 0 ? currentCorpus : 0;
-      startSurplus = surplus > 0 ? surplus : 0;
+      corpus = currentCorpus > 0 ? currentCorpus : 0;
+      surp = surplus > 0 ? surplus : 0;
     }
+    return { startCorpus: corpus, startSurplus: surp };
+  }, [currentCorpus, surplus, useNetworth, state.assets, state.goals]);
 
-    return calculateFireProjection(
-      age,
-      startCorpus,
-      startSurplus,
-      expenses,
-      inflation,
-      roi,
-      swr,
-      investmentStopAge
-    );
-  }, [age, swr, roi, inflation, currentCorpus, surplus, expenses, useNetworth, state.assets, state.goals, investmentStopAge]);
+  const projection = useMemo(() => {
+    if (expenses <= 0) return { data: [], fireAge: null, fireCorpus: 0 };
+    return calculateFireProjection(age, startCorpus, startSurplus, expenses, inflation, roi, swr, investmentStopAge);
+  }, [age, swr, roi, inflation, startCorpus, startSurplus, expenses, investmentStopAge]);
+
+  const projectionB = useMemo(() => {
+    if (expenses <= 0 || !enableScenarioB) return null;
+    return calculateFireProjection(age, startCorpus, startSurplus, expenses, inflation, roiB, swrB, investmentStopAge);
+  }, [enableScenarioB, age, swrB, roiB, inflation, startCorpus, startSurplus, expenses, investmentStopAge]);
+
+  const mergedChartData = useMemo(() => {
+    if (!projection.data) return [];
+    if (!enableScenarioB || !projectionB) return projection.data;
+
+    return projection.data.map((point, index) => {
+      const pointB = projectionB.data[index] || {};
+      return {
+        ...point,
+        corpusB: pointB.corpus,
+        targetB: pointB.target,
+      };
+    });
+  }, [projection.data, projectionB, enableScenarioB]);
 
   const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
   const formatYAxis = (val) => {
@@ -150,6 +165,15 @@ export default function FireDashboard() {
               Full Networth
             </button>
           </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer">Compare Scenario</label>
+            <button 
+              onClick={() => setEnableScenarioB(p => !p)}
+              className={`w-10 h-5.5 flex items-center rounded-full p-1 transition-colors ${enableScenarioB ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+            >
+              <div className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform ${enableScenarioB ? 'translate-x-4' : 'translate-x-0'}`} />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
@@ -188,6 +212,24 @@ export default function FireDashboard() {
             </div>
           </div>
         </div>
+
+        {enableScenarioB && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 pt-4 border-t border-slate-100 dark:border-slate-700/50 animate-fade-in relative">
+            <div className="absolute top-0 left-0 -mt-2.5 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-widest">Scenario B</div>
+            <div className="col-span-1 md:col-span-2" /> {/* Spacer */}
+            <div>
+              <label className="flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Scenario B: SWR</label>
+              <div className="flex items-center gap-3">
+                <input type="range" min="2" max="8" step="0.5" value={swrB} onChange={(e) => setSwrB(parseFloat(e.target.value))} className="flex-1 accent-indigo-400 dark:accent-indigo-300" />
+                <span className="font-semibold w-10 text-slate-700 dark:text-slate-300">{swrB}%</span>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Scenario B: ROI</label>
+              <input type="number" step="0.5" value={roiB} onChange={(e) => setRoiB(parseFloat(e.target.value))} className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-2 py-1 text-sm font-semibold text-slate-700 dark:text-slate-300" />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* KPIs */}
@@ -246,25 +288,44 @@ export default function FireDashboard() {
         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 sm:mb-6">Wealth vs Target Trajectory</h2>
         <div className="flex-1 w-full min-h-0">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={projection.data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <ComposedChart data={mergedChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <defs>
                 <linearGradient id="colorCorpus" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={theme === 'dark' ? '#34d399' : '#10b981'} stopOpacity={0.5}/>
                   <stop offset="95%" stopColor={theme === 'dark' ? '#34d399' : '#10b981'} stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorCorpusB" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#818cf8" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
               <XAxis dataKey="age" tick={{ fontSize: 12, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} tickFormatter={(val) => `Age ${val}`} dy={10} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} tickFormatter={formatYAxis} dx={-10} width={80} axisLine={false} tickLine={false} />
               <Tooltip 
-                formatter={(value, name) => [formatCurrency(value), name === 'corpus' ? 'Accumulated Corpus' : 'Target FI Number']}
+                formatter={(value, name) => {
+                  if (name === 'corpus') return [formatCurrency(value), 'Accumulated Corpus (A)'];
+                  if (name === 'target') return [formatCurrency(value), 'Target FI Number (A)'];
+                  if (name === 'corpusB') return [formatCurrency(value), 'Accumulated Corpus (B)'];
+                  if (name === 'targetB') return [formatCurrency(value), 'Target FI Number (B)'];
+                  return [formatCurrency(value), name];
+                }}
                 labelFormatter={(label) => `Age ${label}`}
                 contentStyle={{ borderRadius: '8px', border: theme === 'dark' ? '1px solid #334155' : 'none', backgroundColor: theme === 'dark' ? '#1e293b' : '#fff', color: theme === 'dark' ? '#f8fafc' : '#0f172a', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               />
-              <Area type="monotone" dataKey="corpus" name="Accumulated Corpus" stroke={theme === 'dark' ? '#34d399' : '#10b981'} strokeWidth={3} fillOpacity={1} fill="url(#colorCorpus)" />
-              <Line type="monotone" dataKey="target" name="Target FI Number" stroke="#f43f5e" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+              <Area type="monotone" dataKey="corpus" name="corpus" stroke={theme === 'dark' ? '#34d399' : '#10b981'} strokeWidth={3} fillOpacity={1} fill="url(#colorCorpus)" />
+              <Line type="monotone" dataKey="target" name="target" stroke="#f43f5e" strokeWidth={2} strokeDasharray="5 5" dot={false} />
               {projection.fireAge && (
                 <ReferenceDot x={projection.fireAge} y={projection.fireCorpus} r={6} fill="#f43f5e" stroke="#fff" strokeWidth={2} />
+              )}
+              {enableScenarioB && (
+                <>
+                  <Area type="monotone" dataKey="corpusB" name="corpusB" stroke="#818cf8" strokeWidth={2} strokeDasharray="4 4" fillOpacity={1} fill="url(#colorCorpusB)" />
+                  <Line type="monotone" dataKey="targetB" name="targetB" stroke="#f472b6" strokeWidth={2} strokeDasharray="3 3" dot={false} />
+                  {projectionB?.fireAge && (
+                    <ReferenceDot x={projectionB.fireAge} y={projectionB.fireCorpus} r={6} fill="#f472b6" stroke="#fff" strokeWidth={2} />
+                  )}
+                </>
               )}
             </ComposedChart>
           </ResponsiveContainer>

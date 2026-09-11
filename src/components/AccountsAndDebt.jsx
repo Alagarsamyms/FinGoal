@@ -75,9 +75,9 @@ function InlineEditPanel({ onSave, onCancel, children, accent = 'indigo' }) {
 }
 
 // ─── Shared field component ───────────────────────────────────
-const Field = ({ label, children }) => (
+const Field = ({ label, children, tooltip }) => (
   <div>
-    <label className={labelCls}>{label}</label>
+    <label className={`${labelCls} flex items-center gap-0.5`}>{label}{tooltip}</label>
     {children}
   </div>
 );
@@ -143,6 +143,25 @@ export default function AccountsAndDebt() {
   const [editLiab, setEditLiab] = useState({});
   const [editLiabAttempted, setEditLiabAttempted] = useState(false);
 
+  // ── Quick Update All Values drawer ───────────────────────────
+  const [showQuickUpdate, setShowQuickUpdate] = useState(false);
+  const [quickValues, setQuickValues] = useState({});
+
+  const openQuickUpdate = () => {
+    const vals = {};
+    state.assets.forEach(a => { vals[a.id] = String(a.currentValue ?? a.value ?? ''); });
+    setQuickValues(vals);
+    setShowQuickUpdate(true);
+  };
+
+  const saveQuickUpdate = () => {
+    Object.entries(quickValues).forEach(([id, val]) => {
+      const parsed = parseFloat(val);
+      if (!isNaN(parsed)) updateItem('assets', id, { currentValue: parsed });
+    });
+    setShowQuickUpdate(false);
+  };
+
   // ── Handle Add Asset ────────────────────────────────────────
   const handleAddAsset = () => {
     setAssetFormAttempted(true);
@@ -160,6 +179,12 @@ export default function AccountsAndDebt() {
     });
     setAddAsset({ name: '', invested: '', current: '', sip: '', roi: '', type: assetTypes[0], owner: owners[0], autoGrow: true });
     setShowAddAsset(false);
+    // 🔔 Contextual push prompt: show after user adds their FIRST asset (high-trust moment)
+    if (state.assets.length === 0 && window.OneSignalDeferred) {
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        try { await OneSignal.Slidedown.promptPush(); } catch (e) { /* silent */ }
+      });
+    }
   };
 
   // ── Open inline edit for an asset ───────────────────────────
@@ -504,16 +529,27 @@ export default function AccountsAndDebt() {
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Assets Manager
               <InfoTooltip title="Assets Manager" text="Add everything you own that has financial value — mutual funds, stocks, gold, real estate, FDs, PPF, etc. Enter both the amount you originally invested and the current market value so Wealth For FIRE can track your real returns." />
             </h2>
-            <button
-              onClick={() => { setShowAddAsset(v => !v); setEditingAssetId(null); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-                showAddAsset
-                  ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-              }`}
-            >
-              {showAddAsset ? <><X size={14} /> Cancel</> : <><Plus size={14} /> Add Asset</>}
-            </button>
+            <div className="flex items-center gap-2">
+              {state.assets.length > 0 && (
+                <button
+                  onClick={openQuickUpdate}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+                  title="Quickly update all asset values in one place"
+                >
+                  ⚡ Quick Update
+                </button>
+              )}
+              <button
+                onClick={() => { setShowAddAsset(v => !v); setEditingAssetId(null); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                  showAddAsset
+                    ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                }`}
+              >
+                {showAddAsset ? <><X size={14} /> Cancel</> : <><Plus size={14} /> Add Asset</>}
+              </button>
+            </div>
           </div>
 
           {/* Add Asset Form */}
@@ -554,13 +590,15 @@ export default function AccountsAndDebt() {
                   </Field>
                 </div>
                 <div className="col-span-1 sm:col-span-1">
-                  <Field label="Exp. ROI (%)">
+                  <Field label="Exp. ROI (%)" tooltip={<InfoTooltip title="Expected ROI" text="Enter your expected annual return as a percentage. For Mutual Funds use the fund's historical CAGR (typically 10–15%). For FDs use the interest rate. For Gold use ~8%." />}>
                     <input type="number" placeholder="12" className={`${inputCls} ${getErrCls(assetFormAttempted, addAsset.roi)}`} value={addAsset.roi} onChange={e => setAddAsset(p => ({ ...p, roi: e.target.value }))} />
                   </Field>
                 </div>
                 <div className="col-span-1 sm:col-span-1 flex flex-col">
                   <div className="flex justify-between items-center mb-1.5">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Monthly SIP (₹)</label>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center">Monthly SIP (₹)
+                      <InfoTooltip title="Monthly SIP" text="Enter the fixed amount invested every month (SIP = Systematic Investment Plan). E.g. ₹5,000/month. When 'Active' is checked, this amount is auto-added to your asset value each month." />
+                    </label>
                     <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                       <input 
                         type="checkbox" 
@@ -702,13 +740,15 @@ export default function AccountsAndDebt() {
                           </Field>
                         </div>
                         <div className="col-span-1 sm:col-span-1">
-                          <Field label="Exp. ROI (%)">
+                          <Field label="Exp. ROI (%)" tooltip={<InfoTooltip title="Expected ROI" text="Enter your expected annual return as a percentage. For Mutual Funds use the fund's historical CAGR (typically 10–15%). For FDs use the interest rate. For Gold use ~8%." />}>
                             <input type="number" className={`${inputCls} ${getErrCls(editAssetAttempted, editAsset.roi)}`} value={editAsset.roi} onChange={e => setEditAsset(p => ({ ...p, roi: e.target.value }))} />
                           </Field>
                         </div>
                         <div className="col-span-1 sm:col-span-1 flex flex-col">
                           <div className="flex justify-between items-center mb-1.5">
-                            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Monthly SIP (₹)</label>
+                            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center">Monthly SIP (₹)
+                              <InfoTooltip title="Monthly SIP" text="Enter the fixed amount invested every month. When 'Active' is checked, this amount is auto-added to your asset value each month." />
+                            </label>
                             <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                               <input 
                                 type="checkbox" 
@@ -748,6 +788,60 @@ export default function AccountsAndDebt() {
         </div>
 
       </div>
+
+      {/* ── Quick Update All Values Drawer ────────────────── */}
+      {showQuickUpdate && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowQuickUpdate(false)}>
+          <div
+            className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
+            style={{ animation: 'slideDown 0.2s ease-out' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4 text-white flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg">⚡ Quick Update Values</h3>
+                <p className="text-emerald-100 text-xs mt-0.5">Update all current market values in one shot</p>
+              </div>
+              <button onClick={() => setShowQuickUpdate(false)} className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Asset List */}
+            <div className="px-4 py-3 max-h-[60vh] overflow-y-auto space-y-2">
+              {state.assets.map(a => (
+                <div key={a.id} className="flex items-center gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-slate-800 dark:text-white truncate">{a.name}</div>
+                    <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{a.type}</div>
+                  </div>
+                  <input
+                    type="number"
+                    value={quickValues[a.id] ?? ''}
+                    onChange={e => setQuickValues(prev => ({ ...prev, [a.id]: e.target.value }))}
+                    className="w-36 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white rounded-lg px-2.5 py-1.5 text-sm font-semibold text-right focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                    placeholder="Current value"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+              <span className="text-xs text-slate-500 dark:text-slate-400">{state.assets.length} assets</span>
+              <div className="flex gap-2">
+                <button onClick={() => setShowQuickUpdate(false)} className="px-4 py-2 text-sm font-medium border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                  Cancel
+                </button>
+                <button onClick={saveQuickUpdate} className="flex items-center gap-1.5 px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                  <Check size={14} /> Save All
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
