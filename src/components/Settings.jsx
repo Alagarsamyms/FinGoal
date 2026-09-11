@@ -6,10 +6,11 @@ import { supabase } from '../utils/supabase';
 import { isSyncedToDrive, handleDriveAuthClick, disconnectDrive } from '../utils/gdrive';
 import {
   Download, Database, Layers, Plus, Edit2, Trash2, Check, X,
-  User, Loader2, LogOut, ShieldCheck, AlertTriangle, CheckCircle2, FileText, ExternalLink
+  User, Loader2, LogOut, ShieldCheck, AlertTriangle, CheckCircle2, FileText, ExternalLink, BookOpen
 } from 'lucide-react';
 import { InfoTooltip } from './Onboarding';
 import AuthModal from './AuthModal';
+import FireEducationModal from './FireEducationModal';
 
 export default function Settings({ setCurrentView }) {
   const { state, updateField, addAssetType, removeAssetType, renameAssetType } = useAppState();
@@ -23,6 +24,7 @@ export default function Settings({ setCurrentView }) {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [gdriveConnected, setGdriveConnected] = useState(false);
+  const [showEduModal, setShowEduModal] = useState(false);
 
   React.useEffect(() => {
     setGdriveConnected(isSyncedToDrive());
@@ -325,6 +327,27 @@ export default function Settings({ setCurrentView }) {
         </div>
       </div>
 
+      {/* ── Education & Help ──────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+        <div className="flex flex-col sm:flex-row items-start gap-4">
+          <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center text-amber-600 dark:text-amber-400 flex-shrink-0">
+            <BookOpen size={24} />
+          </div>
+          <div className="flex-1 w-full">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Education & Help</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
+              Learn about FIRE, how to use this application, and why your data matters.
+            </p>
+            <button
+              onClick={() => setShowEduModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg font-medium text-sm transition-colors"
+            >
+              <BookOpen size={16} /> What is FIRE & How to use this app?
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* ── Legal ───────────────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
         <div className="flex flex-col sm:flex-row items-start gap-4">
@@ -374,6 +397,10 @@ export default function Settings({ setCurrentView }) {
           onSuccess={() => setShowAuth(false)}
           defaultTab="signup"
         />
+      )}
+
+      {showEduModal && (
+        <FireEducationModal isOpen={showEduModal} onClose={() => setShowEduModal(false)} />
       )}
     </div>
   );
