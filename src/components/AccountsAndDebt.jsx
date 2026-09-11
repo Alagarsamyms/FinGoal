@@ -312,39 +312,39 @@ export default function AccountsAndDebt() {
                     <input type="text" placeholder="e.g. Home Loan" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.name)}`} value={addLiab.name} onChange={e => setAddLiab(p => ({ ...p, name: e.target.value }))} />
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1 sm:col-span-1">
                   <Field label="Original Loan (₹)">
                     <input type="number" placeholder="Original Amount" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.originalAmount)}`} value={addLiab.originalAmount} onChange={e => setAddLiab(p => ({ ...p, originalAmount: e.target.value }))} />
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1 sm:col-span-1">
                   <Field label="First EMI Month">
                     <input type="month" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.firstEmiDate)}`} value={addLiab.firstEmiDate} onChange={e => setAddLiab(p => ({ ...p, firstEmiDate: e.target.value }))} />
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1 sm:col-span-1">
                   <Field label="Outstanding (₹) - Auto">
                     <input type="number" readOnly className={`${inputCls} bg-slate-50 dark:bg-slate-900 cursor-not-allowed`} value={calcOutstanding(addLiab.originalAmount, addLiab.rate, addLiab.emi, addLiab.firstEmiDate) || addLiab.originalAmount || ''} />
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1 sm:col-span-1">
                   <Field label="Interest Rate (%)">
                     <input type="number" placeholder="0.00" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.rate)}`} value={addLiab.rate} onChange={e => setAddLiab(p => ({ ...p, rate: e.target.value }))} />
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1 sm:col-span-1">
                   <Field label="Tenure (Yrs)">
                     <input type="number" placeholder="20" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.tenure)}`} value={addLiab.tenure || ''} onChange={e => setAddLiab(p => ({ ...p, tenure: e.target.value }))} />
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1 sm:col-span-1">
                   <Field label="Owner">
                     <select className={inputCls} value={addLiab.owner} onChange={e => setAddLiab(p => ({ ...p, owner: e.target.value }))}>
                       {owners.map(o => <option key={o} value={o}>{o}</option>)}
                     </select>
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1 sm:col-span-1">
                   <Field label="EMI (₹)">
                     <div className="relative">
                       <input type="number" placeholder="0" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.emi)} pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} value={addLiab.emi} onChange={e => setAddLiab(p => ({ ...p, emi: e.target.value }))} />
@@ -433,39 +433,39 @@ export default function AccountsAndDebt() {
                           <input autoFocus type="text" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.name)}`} value={editLiab.name} onChange={e => setEditLiab(p => ({ ...p, name: e.target.value }))} />
                         </Field>
                       </div>
-                      <div className="col-span-2 sm:col-span-1">
+                      <div className="col-span-1 sm:col-span-1">
                         <Field label="Original Loan (₹)">
                           <input type="number" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.originalAmount)}`} value={editLiab.originalAmount} onChange={e => setEditLiab(p => ({ ...p, originalAmount: e.target.value }))} />
                         </Field>
                       </div>
-                      <div className="col-span-2 sm:col-span-1">
+                      <div className="col-span-1 sm:col-span-1">
                         <Field label="First EMI Month">
                           <input type="month" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.firstEmiDate)}`} value={editLiab.firstEmiDate} onChange={e => setEditLiab(p => ({ ...p, firstEmiDate: e.target.value }))} />
                         </Field>
                       </div>
-                      <div className="col-span-2 sm:col-span-1">
+                      <div className="col-span-1 sm:col-span-1">
                         <Field label="Outstanding (₹) - Auto">
                           <input type="number" readOnly className={`${inputCls} bg-slate-50 dark:bg-slate-900 cursor-not-allowed`} value={calcOutstanding(editLiab.originalAmount, editLiab.rate, editLiab.emi, editLiab.firstEmiDate) || editLiab.originalAmount || ''} />
                         </Field>
                       </div>
-                      <div className="col-span-2 sm:col-span-1">
+                      <div className="col-span-1 sm:col-span-1">
                         <Field label="Interest Rate (%)">
                           <input type="number" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.rate)}`} value={editLiab.rate} onChange={e => setEditLiab(p => ({ ...p, rate: e.target.value }))} />
                         </Field>
                       </div>
-                      <div className="col-span-2 sm:col-span-1">
+                      <div className="col-span-1 sm:col-span-1">
                         <Field label="Tenure (Yrs)">
                           <input type="number" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.tenure)}`} value={editLiab.tenure || ''} onChange={e => setEditLiab(p => ({ ...p, tenure: e.target.value }))} />
                         </Field>
                       </div>
-                      <div className="col-span-2 sm:col-span-1">
+                      <div className="col-span-1 sm:col-span-1">
                         <Field label="Owner">
                           <select className={inputCls} value={editLiab.owner} onChange={e => setEditLiab(p => ({ ...p, owner: e.target.value }))}>
                             {owners.map(o => <option key={o} value={o}>{o}</option>)}
                           </select>
                         </Field>
                       </div>
-                      <div className="col-span-2 sm:col-span-1">
+                      <div className="col-span-1 sm:col-span-1">
                         <Field label="EMI (₹)">
                           <div className="relative">
                             <input type="number" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.emi)} pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} value={editLiab.emi} onChange={e => setEditLiab(p => ({ ...p, emi: e.target.value }))} />
@@ -529,36 +529,36 @@ export default function AccountsAndDebt() {
                     <input type="text" placeholder="e.g. Axis Bluechip" className={`${inputCls} ${getErrCls(assetFormAttempted, addAsset.name)}`} value={addAsset.name} onChange={e => setAddAsset(p => ({ ...p, name: e.target.value }))} />
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1 sm:col-span-1">
                   <Field label="Asset Type">
                     <select className={inputCls} value={addAsset.type} onChange={e => setAddAsset(p => ({ ...p, type: e.target.value }))}>
                       {assetTypes.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1 sm:col-span-1">
                   <Field label="Owner">
                     <select className={inputCls} value={addAsset.owner} onChange={e => setAddAsset(p => ({ ...p, owner: e.target.value }))}>
                       {owners.map(o => <option key={o} value={o}>{o}</option>)}
                     </select>
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1 sm:col-span-1">
                   <Field label="Invested (₹)">
                     <input type="number" placeholder="0" className={`${inputCls} ${getErrCls(assetFormAttempted, addAsset.invested)}`} value={addAsset.invested} onChange={e => setAddAsset(p => ({ ...p, invested: e.target.value }))} />
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1 sm:col-span-1">
                   <Field label="Current Value (₹)">
                     <input type="number" placeholder="0" className={`${inputCls} ${getErrCls(assetFormAttempted, addAsset.current)}`} value={addAsset.current} onChange={e => setAddAsset(p => ({ ...p, current: e.target.value }))} />
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1 sm:col-span-1">
                   <Field label="Exp. ROI (%)">
                     <input type="number" placeholder="12" className={`${inputCls} ${getErrCls(assetFormAttempted, addAsset.roi)}`} value={addAsset.roi} onChange={e => setAddAsset(p => ({ ...p, roi: e.target.value }))} />
                   </Field>
                 </div>
-                <div className="col-span-2 sm:col-span-1 flex flex-col">
+                <div className="col-span-1 sm:col-span-1 flex flex-col">
                   <div className="flex justify-between items-center mb-1.5">
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Monthly SIP (₹)</label>
                     <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
@@ -677,36 +677,36 @@ export default function AccountsAndDebt() {
                             <input autoFocus type="text" className={`${inputCls} ${getErrCls(editAssetAttempted, editAsset.name)}`} value={editAsset.name} onChange={e => setEditAsset(p => ({ ...p, name: e.target.value }))} />
                           </Field>
                         </div>
-                        <div className="col-span-2 sm:col-span-1">
+                        <div className="col-span-1 sm:col-span-1">
                           <Field label="Asset Type">
                             <select className={inputCls} value={editAsset.type} onChange={e => setEditAsset(p => ({ ...p, type: e.target.value }))}>
                               {assetTypes.map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
                           </Field>
                         </div>
-                        <div className="col-span-2 sm:col-span-1">
+                        <div className="col-span-1 sm:col-span-1">
                           <Field label="Owner">
                             <select className={inputCls} value={editAsset.owner} onChange={e => setEditAsset(p => ({ ...p, owner: e.target.value }))}>
                               {owners.map(o => <option key={o} value={o}>{o}</option>)}
                             </select>
                           </Field>
                         </div>
-                        <div className="col-span-2 sm:col-span-1">
+                        <div className="col-span-1 sm:col-span-1">
                           <Field label="Invested (₹)">
                             <input type="number" className={`${inputCls} ${getErrCls(editAssetAttempted, editAsset.invested)}`} value={editAsset.invested} onChange={e => setEditAsset(p => ({ ...p, invested: e.target.value }))} />
                           </Field>
                         </div>
-                        <div className="col-span-2 sm:col-span-1">
+                        <div className="col-span-1 sm:col-span-1">
                           <Field label="Current Value (₹)">
                             <input type="number" className={`${inputCls} ${getErrCls(editAssetAttempted, editAsset.current)}`} value={editAsset.current} onChange={e => setEditAsset(p => ({ ...p, current: e.target.value }))} />
                           </Field>
                         </div>
-                        <div className="col-span-2 sm:col-span-1">
+                        <div className="col-span-1 sm:col-span-1">
                           <Field label="Exp. ROI (%)">
                             <input type="number" className={`${inputCls} ${getErrCls(editAssetAttempted, editAsset.roi)}`} value={editAsset.roi} onChange={e => setEditAsset(p => ({ ...p, roi: e.target.value }))} />
                           </Field>
                         </div>
-                        <div className="col-span-2 sm:col-span-1 flex flex-col">
+                        <div className="col-span-1 sm:col-span-1 flex flex-col">
                           <div className="flex justify-between items-center mb-1.5">
                             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Monthly SIP (₹)</label>
                             <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">

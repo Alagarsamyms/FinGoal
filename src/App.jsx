@@ -5,6 +5,7 @@ import { AppStateProvider } from './context/AppStateContext';
 import { AuthProvider } from './context/AuthContext';
 import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
+import BottomNav from './components/BottomNav';
 import AuthManager from './components/AuthManager';
 import AccountsAndDebt from './components/AccountsAndDebt';
 import GoalTracker from './components/GoalTracker';
@@ -86,9 +87,11 @@ function App() {
             setShowAuth={setShowAuth}
           />
 
-          <main className="flex-1 p-4 md:p-8 ml-0 md:ml-64 mt-14 md:mt-0 max-w-[100vw] overflow-x-hidden">
+          <main className="flex-1 p-4 md:p-8 ml-0 md:ml-64 mt-14 md:mt-0 pb-24 md:pb-8 max-w-[100vw] overflow-x-hidden">
             {renderView()}
           </main>
+
+          <BottomNav currentView={currentView} setCurrentView={setCurrentView} />
         </div>
       </AppStateProvider>
     </AuthProvider>
