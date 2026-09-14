@@ -25,7 +25,12 @@ export function AuthProvider({ children }) {
           if (user.email) {
             await OneSignal.User.addEmail(user.email);
           }
-          await OneSignal.Slidedown.promptPush();
+          
+          // Use native browser permission prompt directly. 
+          // Since this runs immediately after the 'Sign In' click (user gesture), it works reliably on Android PWAs.
+          if (OneSignal.Notifications && OneSignal.Notifications.isPushSupported()) {
+            await OneSignal.Notifications.requestPermission();
+          }
         } catch (err) {
           console.error('OneSignal login error:', err);
         }

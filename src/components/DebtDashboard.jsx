@@ -2,7 +2,7 @@ import React from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { FileWarning, Calendar, AlertCircle } from 'lucide-react';
 
-export default function DebtDashboard() {
+export default function DebtDashboard({ setCurrentView }) {
   const { state } = useAppState();
   const theme = state.settings?.theme || 'light';
   const liabilities = state.liabilities || [];
@@ -38,7 +38,8 @@ export default function DebtDashboard() {
         }
       }
       
-      const startDate = new Date(l.firstEmiDate + '-01'); // YYYY-MM
+      const dateStr = l.firstEmiDate.length === 7 ? l.firstEmiDate + '-01' : l.firstEmiDate;
+      const startDate = new Date(dateStr);
       startDate.setMonth(startDate.getMonth() + totalMonths);
       
       const now = new Date();
@@ -121,7 +122,20 @@ export default function DebtDashboard() {
                   {isWarning ? <AlertCircle size={16} /> : <Calendar size={16} className="text-indigo-500 dark:text-indigo-400" />}
                   <span>Projected Payoff:</span>
                 </div>
-                <span className={isWarning ? '' : 'text-indigo-600 dark:text-indigo-400'}>{payoff.text}</span>
+                {isWarning ? (
+                  <button 
+                    onClick={() => {
+                      if (setCurrentView) setCurrentView('accounts');
+                      window.location.hash = `#edit-liab-${l.id}`;
+                    }}
+                    className="underline decoration-dashed underline-offset-4 hover:text-rose-700 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                    title="Click to update this loan's details"
+                  >
+                    {payoff.text}
+                  </button>
+                ) : (
+                  <span className="text-indigo-600 dark:text-indigo-400">{payoff.text}</span>
+                )}
               </div>
             </div>
           );

@@ -52,7 +52,7 @@ function App() {
       case 'accounts': return <AccountsAndDebt />;
       case 'goals': return <GoalTracker />;
       case 'fire': return <FireDashboard setCurrentView={setCurrentView} />;
-      case 'protection': return <Protection />;
+      case 'protection': return <Protection setCurrentView={setCurrentView} />;
       case 'simulation': return <Simulation />;
       case 'settings': return <Settings setCurrentView={setCurrentView} />;
       case 'legal': return <LegalPage />;

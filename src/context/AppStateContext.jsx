@@ -108,6 +108,8 @@ async function autoMigrateToSupabase(userId, local) {
           user_id: userId,
           name: l.name || 'Unnamed',
           value: Number(l.value) || 0,
+          original_amount: Number(l.originalAmount) || Number(l.value) || 0,
+          first_emi_date: (l.firstEmiDate && l.firstEmiDate.length === 7) ? `${l.firstEmiDate}-01` : (l.firstEmiDate || null),
           interest_rate: Number(l.interest) || 0,
           emi: Number(l.emi) || 0,
           type: l.type || 'Loan',
@@ -123,17 +125,40 @@ async function autoMigrateToSupabase(userId, local) {
   if (Array.isArray(local.goals) && local.goals.length > 0) {
     promises.push(
       supabase.from('goals').upsert(
-        local.goals.map(g => ({
-          id: ensureValidUuid(g.id),
-          user_id: userId,
-          name: g.name || 'Unnamed',
-          target_amount: Number(g.target) || 0,
-          saved_amount: Number(g.saved) || 0,
-          monthly_contribution: Number(g.contribution) || 0,
-          expected_roi: Number(g.roi) || 8,
-          target_date: (g.date && g.date.length === 7) ? `${g.date}-01` : (g.date || null),
-          linked_assets: g.linkedAssets || [],
-        })),
+        local.goals.map(g => {
+          // Dynamically calculate stats based on linked assets before syncing to cloud
+          const links = Array.isArray(g.linkedAssets) ? g.linkedAssets : [];
+          let totalSaved = 0;
+          let totalContrib = 0;
+          let weightedRoiSum = 0;
+
+          links.forEach(link => {
+            const a = (local.assets || []).find(ast => ast.id === link.assetId);
+            if (a) {
+              const val = parseFloat(a.currentValue ?? a.value ?? 0);
+              const alloc = (parseFloat(link.allocation) || 0) / 100;
+              const allocVal = val * alloc;
+              const allocSip = (parseFloat(a.sip) || 0) * alloc;
+              totalSaved += allocVal;
+              totalContrib += allocSip;
+              weightedRoiSum += (parseFloat(a.roi) || 0) * allocVal;
+            }
+          });
+
+          const calculatedRoi = totalSaved > 0 ? weightedRoiSum / totalSaved : 0;
+
+          return {
+            id: ensureValidUuid(g.id),
+            user_id: userId,
+            name: g.name || 'Unnamed',
+            target_amount: Number(g.target) || 0,
+            saved_amount: totalSaved,
+            monthly_contribution: totalContrib,
+            expected_roi: calculatedRoi,
+            target_date: (g.date && g.date.length === 7) ? `${g.date}-01` : (g.date || null),
+            linked_assets: g.linkedAssets || [],
+          };
+        }),
         { onConflict: 'id' }
       )
     );
@@ -207,6 +232,7 @@ async function loadStateFromSupabase(userId) {
 
     const mappedAssets = (assets.data || []).map(a => {
       let val = Number(a.value) || 0;
+      let invested = Number(a.invested) || 0;
       const autoGrow = a.auto_grow ?? true;
       const sip = Number(a.sip) || 0;
       const roi = Number(a.roi) || 0;
@@ -217,15 +243,20 @@ async function loadStateFromSupabase(userId) {
         const daysElapsed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         
         if (daysElapsed > 0 && (roi > 0 || sip > 0)) {
-          // Compound daily for accuracy over elapsed days
           const dailyRoi = roi / 100 / 365;
-          const dailySip = (sip * 12) / 365;
+          let currentSimDate = new Date(updatedAt);
           
           for (let i = 0; i < daysElapsed; i++) {
-            val = val * (1 + dailyRoi) + dailySip;
+            currentSimDate.setDate(currentSimDate.getDate() + 1);
+            val = val * (1 + dailyRoi);
+            
+            if (currentSimDate.getDate() === 1) {
+              val += sip;
+              invested += sip;
+            }
           }
           
-          assetsToUpdate.push({ id: a.id, value: val, updated_at: now.toISOString() });
+          assetsToUpdate.push({ id: a.id, value: val, invested: invested, updated_at: now.toISOString() });
         }
       }
 
@@ -235,7 +266,7 @@ async function loadStateFromSupabase(userId) {
         value: val,
         currentValue: val,
         type: a.type,
-        invested: a.invested,
+        invested: invested,
         sip: sip,
         roi: roi,
         owner: a.owner,
@@ -243,11 +274,68 @@ async function loadStateFromSupabase(userId) {
       };
     });
 
-    // Fire and forget DB updates for auto-grown assets
+    // ── Liability Auto-Paydown Logic ──
+    const liabilitiesToUpdate = [];
+    const mappedLiabilities = (liabilities.data || []).map(l => {
+      let val = Number(l.value) || 0;
+      const interestRate = Number(l.interest_rate) || 0;
+      const emi = Number(l.emi) || 0;
+      const firstEmiDate = l.first_emi_date ? new Date(l.first_emi_date) : null;
+      
+      if (l.updated_at && firstEmiDate && val > 0 && emi > 0) {
+        const updatedAt = new Date(l.updated_at);
+        const diffTime = now.getTime() - updatedAt.getTime();
+        const daysElapsed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (daysElapsed > 0) {
+          const dailyInterest = interestRate / 100 / 365;
+          let currentSimDate = new Date(updatedAt);
+          
+          for (let i = 0; i < daysElapsed; i++) {
+            currentSimDate.setDate(currentSimDate.getDate() + 1);
+            
+            // Accrue interest daily
+            val = val * (1 + dailyInterest);
+            
+            // Deduct EMI on 1st of the month if we've reached/passed the first EMI date
+            if (currentSimDate.getDate() === 1 && currentSimDate >= firstEmiDate) {
+              val -= emi;
+            }
+            if (val <= 0) {
+              val = 0;
+              break;
+            }
+          }
+          
+          liabilitiesToUpdate.push({ id: l.id, value: val, updated_at: now.toISOString() });
+        }
+      }
+      
+      return {
+        id: l.id,
+        name: l.name,
+        value: val,
+        originalAmount: l.original_amount,
+        firstEmiDate: l.first_emi_date,
+        interest: l.interest_rate,
+        emi: l.emi,
+        type: l.type,
+        tenure: l.tenure,
+        owner: l.owner,
+      };
+    });
+
+    // Fire and forget DB updates
     if (assetsToUpdate.length > 0) {
       Promise.all(assetsToUpdate.map(ua => 
-        supabase.from('assets').update({ value: ua.value, updated_at: ua.updated_at }).eq('id', ua.id)
+        supabase.from('assets').update({ value: ua.value, invested: ua.invested, updated_at: ua.updated_at }).eq('id', ua.id)
       )).catch(err => console.error("[AppState] Auto-grow update failed:", err));
+    }
+    
+    if (liabilitiesToUpdate.length > 0) {
+      Promise.all(liabilitiesToUpdate.map(ul => 
+        supabase.from('liabilities').update({ value: ul.value, updated_at: ul.updated_at }).eq('id', ul.id)
+      )).catch(err => console.error("[AppState] Auto-paydown update failed:", err));
     }
 
     return {
@@ -256,19 +344,7 @@ async function loadStateFromSupabase(userId) {
       emi: s?.monthly_emi ?? 0,
 
       assets: mappedAssets,
-
-      liabilities: (liabilities.data || []).map(l => ({
-        id: l.id,
-        name: l.name,
-        value: l.value,
-        originalAmount: l.original_amount,
-        firstEmiDate: l.first_emi_date,
-        interest: l.interest_rate,
-        emi: l.emi,
-        type: l.type,
-        tenure: l.tenure,
-        owner: l.owner,
-      })),
+      liabilities: mappedLiabilities,
 
     goals: (goals.data || []).map(g => ({
       id: g.id,
@@ -328,7 +404,7 @@ async function supabaseUpsertItem(listName, userId, item) {
         name: item.name || 'Unnamed',
         value: Number(item.value) || 0,
         original_amount: Number(item.originalAmount) || Number(item.value) || 0,
-        first_emi_date: item.firstEmiDate || null,
+        first_emi_date: (item.firstEmiDate && item.firstEmiDate.length === 7) ? `${item.firstEmiDate}-01` : (item.firstEmiDate || null),
         interest_rate: Number(item.interest) || 0,
         emi: Number(item.emi) || 0,
         type: item.type || 'Loan',
@@ -343,7 +419,7 @@ async function supabaseUpsertItem(listName, userId, item) {
         target_amount: Number(item.target) || 0,
         saved_amount: Number(item.saved) || 0,
         monthly_contribution: Number(item.contribution) || 0,
-        expected_roi: Number(item.roi) || 8,
+        expected_roi: item.roi !== undefined ? Number(item.roi) : 8,
         target_date: (item.date && item.date.length === 7) ? `${item.date}-01` : (item.date || null),
         linked_assets: Array.isArray(item.linkedAssets) ? item.linkedAssets : [],
       }, { onConflict: 'id' });

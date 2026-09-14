@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { Plus, Trash2, Edit2, CheckCircle2, AlertTriangle, XCircle, Link as LinkIcon, Info, Target } from 'lucide-react';
 import { InfoTooltip, SectionEmptyState } from './Onboarding';
@@ -18,6 +18,24 @@ export default function GoalTracker() {
   const [formAttempted, setFormAttempted] = useState(false);
   const [allocationError, setAllocationError] = useState('');
   const [showLinkTip, setShowLinkTip] = useState(false);
+
+  // ── Deep Linking Effect ────────────────────────────────────────
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#edit-goal-')) {
+        const id = hash.replace('#edit-goal-', '');
+        const goal = state.goals?.find(g => g.id === id);
+        if (goal && editingGoalId !== id) {
+          handleEditGoal(goal);
+        }
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    };
+    if (state.goals?.length > 0) {
+      handleHash();
+    }
+  }, [state.goals, editingGoalId]);
 
   // ── Allocation helpers ───────────────────────────────────────────
   // Get how much % of a given asset is already used by OTHER goals
@@ -68,59 +86,6 @@ export default function GoalTracker() {
     setLinkedAssets(linkedAssets.map(la => la.assetId === assetId ? { ...la, allocation: val } : la));
   };
 
-  // ── Save / Update goal ───────────────────────────────────────────
-  const handleSaveGoal = () => {
-    setFormAttempted(true);
-    if (!name || !target) return;
-
-    // Validate total allocation per asset doesn't exceed 100%
-    for (const la of linkedAssets) {
-      const used = getUsedAllocation(la.assetId, editingGoalId);
-      if ((used + (parseFloat(la.allocation) || 0)) > 100.01) {
-        setAllocationError(`Total allocation for "${state.assets.find(a => a.id === la.assetId)?.name}" exceeds 100%. Please reduce it.`);
-        return;
-      }
-    }
-
-    const goalData = {
-      name,
-      target: parseFloat(target),
-      saved: 0,
-      contribution: 0,
-      roi: 0,
-      date: targetDate,
-      linkedAssets,
-    };
-
-    if (editingGoalId) {
-      updateItem('goals', editingGoalId, goalData);
-    } else {
-      addItem('goals', goalData);
-    }
-    resetForm();
-  };
-
-  const handleEditGoal = (g) => {
-    setName(g.name);
-    setTarget(g.target);
-    setTargetDate(g.date || '');
-    setLinkedAssets(Array.isArray(g.linkedAssets) ? g.linkedAssets : []);
-    setEditingGoalId(g.id);
-    setFormAttempted(false);
-    setAllocationError('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const resetForm = () => {
-    setName('');
-    setTarget('');
-    setTargetDate('');
-    setLinkedAssets([]);
-    setEditingGoalId(null);
-    setFormAttempted(false);
-    setAllocationError('');
-  };
-
   // ── Goal stats derived from linked assets ────────────────────────
   const calculateGoalStats = (goal) => {
     const links = Array.isArray(goal.linkedAssets) ? goal.linkedAssets : [];
@@ -148,6 +113,63 @@ export default function GoalTracker() {
     const roi = totalCurrent > 0 ? weightedRoiSum / totalCurrent : 0;
     return { saved: totalCurrent, contribution: totalSip, roi, isAssetLinked: true };
   };
+
+  // ── Save / Update goal ───────────────────────────────────────────
+  const handleSaveGoal = () => {
+    setFormAttempted(true);
+    if (!name || !target) return;
+
+    // Validate total allocation per asset doesn't exceed 100%
+    for (const la of linkedAssets) {
+      const used = getUsedAllocation(la.assetId, editingGoalId);
+      if ((used + (parseFloat(la.allocation) || 0)) > 100.01) {
+        setAllocationError(`Total allocation for "${state.assets.find(a => a.id === la.assetId)?.name}" exceeds 100%. Please reduce it.`);
+        return;
+      }
+    }
+
+    const stats = calculateGoalStats({ linkedAssets });
+
+    const goalData = {
+      name,
+      target: parseFloat(target),
+      saved: stats.saved,
+      contribution: stats.contribution,
+      roi: stats.roi,
+      date: targetDate,
+      linkedAssets,
+    };
+
+    if (editingGoalId) {
+      updateItem('goals', editingGoalId, goalData);
+    } else {
+      addItem('goals', goalData);
+    }
+    resetForm();
+  };
+
+  const handleEditGoal = (g) => {
+    setName(g.name);
+    setTarget(g.target);
+    setTargetDate(g.date ? g.date.substring(0, 7) : '');
+    setLinkedAssets(Array.isArray(g.linkedAssets) ? g.linkedAssets : []);
+    setEditingGoalId(g.id);
+    setFormAttempted(false);
+    setAllocationError('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const resetForm = () => {
+    setName('');
+    setTarget('');
+    setTargetDate('');
+    setLinkedAssets([]);
+    setEditingGoalId(null);
+    setFormAttempted(false);
+    setAllocationError('');
+  };
+
+
 
   const calculateMonthsToGoal = (current, targetAmt, monthly, roiAnnual) => {
     if (current >= targetAmt) return 0;
