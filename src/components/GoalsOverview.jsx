@@ -2,7 +2,7 @@ import React from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { Target, TrendingUp } from 'lucide-react';
 
-export default function GoalsOverview() {
+export default function GoalsOverview({ setCurrentView }) {
   const { state } = useAppState();
   const goals = state.goals || [];
 
@@ -118,9 +118,22 @@ export default function GoalsOverview() {
                   <span className={`text-sm font-bold block ${isComplete ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
                     {percent.toFixed(1)}%
                   </span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-wide uppercase mt-0.5 block">
-                    {projectedDate}
-                  </span>
+                  {projectedDate === 'Unachievable at current SIP' ? (
+                    <button 
+                      onClick={() => { 
+                        if (setCurrentView) setCurrentView('goals'); 
+                        window.location.hash = `#edit-goal-${g.id}`;
+                      }}
+                      className="text-[10px] text-rose-500 font-medium tracking-wide uppercase mt-0.5 block underline decoration-dashed underline-offset-2 hover:text-rose-700 transition-colors cursor-pointer text-right w-full"
+                      title="Click to update goal parameters"
+                    >
+                      {projectedDate}
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-wide uppercase mt-0.5 block">
+                      {projectedDate}
+                    </span>
+                  )}
                 </div>
               </div>
               

@@ -22,8 +22,8 @@ export default function Dashboard({ setCurrentView }) {
         <div className="lg:col-span-2">
           <UnlinkedAssetsProjection />
         </div>
-        <DebtDashboard />
-        <GoalsOverview />
+        <DebtDashboard setCurrentView={setCurrentView} />
+        <GoalsOverview setCurrentView={setCurrentView} />
       </div>
     </div>
   );

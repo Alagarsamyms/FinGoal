@@ -108,9 +108,33 @@ const calcOutstanding = (principal, rate, emi, startDate) => {
   return Math.round(balance).toString();
 };
 
+const renderEmiSuggestion = (liab, setLiab) => {
+  const suggestedEmi = autoCalcEmi(liab.originalAmount || liab.value, liab.rate, liab.tenure);
+  if (!suggestedEmi || String(liab.emi) === String(suggestedEmi)) return null;
+  
+  return (
+    <button
+      onClick={() => setLiab(p => ({ ...p, emi: suggestedEmi }))}
+      className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors animate-fade-in bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded border border-indigo-100 dark:border-indigo-800"
+      title="Click to auto-fill this EMI"
+    >
+      ✨ Auto-fill suggested EMI: ₹{Number(suggestedEmi).toLocaleString('en-IN')}
+    </button>
+  );
+};
+
 export default function AccountsAndDebt() {
   const { state, updateField, addItem, removeItem, updateItem } = useAppState();
   const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Stocks (India)', 'Fixed Deposit', 'Gold', 'Real Estate', 'EPF', 'PPF', 'Recurring Deposit', 'Cash', 'NPS', 'Debt', 'Small Savings Scheme', 'Sovereign Gold Bond', 'ETF', 'Bonds', 'Sukanya Samriddhi', 'Silver', 'US Stocks', 'Stocks (Foreign)', 'REITs', 'ULIP', 'Crypto'];
+
+  // ── Accordion States ─────────────────────────────────────────
+  const hasCashflow = state.income > 0 || state.expenses > 0 || state.emi > 0;
+  const hasLiabilities = state.liabilities?.length > 0;
+  const hasAssets = state.assets?.length > 0;
+
+  const [expCashflow, setExpCashflow] = useState(!hasCashflow);
+  const [expLiab, setExpLiab] = useState(!hasLiabilities);
+  const [expAssets, setExpAssets] = useState(!hasAssets || (hasCashflow && hasLiabilities && hasAssets));
 
   // ── Cash Flow save indicator ──────────────────────────────────
   const [showSaved, setShowSaved] = useState(false);
@@ -146,6 +170,29 @@ export default function AccountsAndDebt() {
   // ── Quick Update All Values drawer ───────────────────────────
   const [showQuickUpdate, setShowQuickUpdate] = useState(false);
   const [quickValues, setQuickValues] = useState({});
+
+  // ── Deep Linking Effect ──────────────────────────────────────
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#edit-liab-')) {
+        const id = hash.replace('#edit-liab-', '');
+        const liab = state.liabilities?.find(l => l.id === id);
+        if (liab && editingLiabId !== id) {
+          setExpLiab(true);
+          openEditLiab(liab);
+          setTimeout(() => {
+            const el = document.getElementById(`liab-${id}`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 150);
+        }
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    };
+    if (state.liabilities?.length > 0) {
+      handleHash();
+    }
+  }, [state.liabilities]);
 
   const openQuickUpdate = () => {
     const vals = {};
@@ -223,10 +270,11 @@ export default function AccountsAndDebt() {
     addItem('liabilities', {
       name: addLiab.name,
       value: parseFloat(calcOutstanding(addLiab.originalAmount, addLiab.rate, addLiab.emi, addLiab.firstEmiDate)) || parseFloat(addLiab.originalAmount) || 0,
-      original_amount: parseFloat(addLiab.originalAmount) || 0,
-      first_emi_date: addLiab.firstEmiDate || null,
+      originalAmount: parseFloat(addLiab.originalAmount) || 0,
+      firstEmiDate: addLiab.firstEmiDate || null,
       emi: parseFloat(addLiab.emi) || 0,
       interest: parseFloat(addLiab.rate) || 0,
+      tenure: parseFloat(addLiab.tenure) || 0,
       owner: addLiab.owner,
     });
     setAddLiab({ name: '', value: '', originalAmount: '', firstEmiDate: '', emi: '', rate: '', owner: owners[0] });
@@ -240,10 +288,11 @@ export default function AccountsAndDebt() {
     setEditLiab({ 
       name: l.name, 
       value: l.value, 
-      originalAmount: l.original_amount ?? '',
-      firstEmiDate: l.first_emi_date ?? '',
+      originalAmount: l.originalAmount ?? '',
+      firstEmiDate: l.firstEmiDate ? l.firstEmiDate.substring(0, 7) : '',
       emi: l.emi ?? '', 
       rate: l.interest ?? '', 
+      tenure: l.tenure ?? '',
       owner: l.owner || owners[0] 
     });
     setEditingAssetId(null); // close any open asset editor
@@ -256,10 +305,11 @@ export default function AccountsAndDebt() {
     updateItem('liabilities', editingLiabId, {
       name: editLiab.name,
       value: parseFloat(calcOutstanding(editLiab.originalAmount, editLiab.rate, editLiab.emi, editLiab.firstEmiDate)) || parseFloat(editLiab.originalAmount) || 0,
-      original_amount: parseFloat(editLiab.originalAmount) || 0,
-      first_emi_date: editLiab.firstEmiDate || null,
+      originalAmount: parseFloat(editLiab.originalAmount) || 0,
+      firstEmiDate: editLiab.firstEmiDate || null,
       emi: parseFloat(editLiab.emi) || 0,
       interest: parseFloat(editLiab.rate) || 0,
+      tenure: parseFloat(editLiab.tenure) || 0,
       owner: editLiab.owner,
     });
     setEditingLiabId(null);
@@ -275,49 +325,70 @@ export default function AccountsAndDebt() {
       <div className="space-y-4 md:space-y-6">
 
         {/* ── Cash Flow ─────────────────────────────────────── */}
-        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors relative">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors relative overflow-hidden">
+          <button 
+            onClick={() => setExpCashflow(!expCashflow)} 
+            className="w-full flex justify-between items-center p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+          >
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
               Cash Flow
               <InfoTooltip title="Cash Flow" text="Enter your total monthly take-home income, regular living expenses, and any standalone EMIs not covered by the loan entries below. Your monthly surplus is calculated automatically." />
             </h2>
-            {showSaved && <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded flex items-center gap-1 animate-fade-in"><Check size={14} /> Saved</span>}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-            <div>
-              <label className={labelCls}>Monthly Income (₹)</label>
-              <input type="number" className={inputCls} value={state.income || ''} onChange={e => handleCashflowChange('income', e.target.value)} />
+            <div className="flex items-center gap-3">
+              {showSaved && <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded flex items-center gap-1 animate-fade-in"><Check size={14} /> Saved</span>}
+              <div className="text-slate-400 dark:text-slate-500">
+                {expCashflow ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </div>
             </div>
-            <div>
-              <label className={labelCls}>Monthly Expenses (₹)</label>
-              <input type="number" className={inputCls} value={state.expenses || ''} onChange={e => handleCashflowChange('expenses', e.target.value)} />
+          </button>
+
+          {expCashflow && (
+            <div className="px-4 pb-4 sm:px-6 sm:pb-6 border-t border-slate-100 dark:border-slate-700 pt-4 sm:pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                <div className="flex md:block items-center justify-between gap-4">
+                  <label className={`${labelCls} !mb-0 md:!mb-1`}>Monthly Income (₹)</label>
+                  <input type="number" className={`${inputCls} w-32 md:w-full text-right md:text-left`} value={state.income || ''} onChange={e => handleCashflowChange('income', e.target.value)} />
+                </div>
+                <div className="flex md:block items-center justify-between gap-4">
+                  <label className={`${labelCls} !mb-0 md:!mb-1`}>Monthly Expenses (₹)</label>
+                  <input type="number" className={`${inputCls} w-32 md:w-full text-right md:text-left`} value={state.expenses || ''} onChange={e => handleCashflowChange('expenses', e.target.value)} />
+                </div>
+                <div className="flex md:block items-center justify-between gap-4">
+                  <label className={`${labelCls} !mb-0 md:!mb-1`}>Other EMIs (₹)</label>
+                  <input type="number" className={`${inputCls} w-32 md:w-full text-right md:text-left`} value={state.emi || ''} onChange={e => handleCashflowChange('emi', e.target.value)} />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className={labelCls}>Other EMIs (₹)</label>
-              <input type="number" className={inputCls} value={state.emi || ''} onChange={e => handleCashflowChange('emi', e.target.value)} />
-            </div>
-          </div>
+          )}
         </div>
 
         {/* ── Liability & Debt Manager ───────────────────────── */}
-        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Liability &amp; Debt Manager
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors overflow-hidden">
+          <div className="flex items-center justify-between p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" onClick={(e) => { if (e.target.closest('button.ignore-toggle')) return; setExpLiab(!expLiab); }}>
+            <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 sm:gap-2 mr-2">
+              Liability &amp; Debt Manager
               <InfoTooltip title="Debt Manager" text="Add all your outstanding loans here — home loan, car loan, personal loan, credit card dues, etc. Enter the outstanding principal, monthly EMI, and interest rate. Wealth For FIRE will rank them by interest rate to show you what to pay off first." />
             </h2>
-            <button
-              onClick={() => { setShowAddLiab(v => !v); setEditingLiabId(null); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-                showAddLiab
-                  ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                  : 'bg-rose-600 hover:bg-rose-700 text-white'
-              }`}
-            >
-              {showAddLiab ? <><X size={14} /> Cancel</> : <><Plus size={14} /> Add Loan</>}
-            </button>
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <button
+                onClick={(e) => { e.stopPropagation(); setExpLiab(true); setShowAddLiab(v => !v); setEditingLiabId(null); }}
+                className={`ignore-toggle flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${
+                  showAddLiab
+                    ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    : 'bg-rose-600 hover:bg-rose-700 text-white'
+                }`}
+              >
+                {showAddLiab ? <><X size={14} /> Cancel</> : <><Plus size={14} /> Add Loan</>}
+              </button>
+              <div className="text-slate-400 dark:text-slate-500">
+                {expLiab ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </div>
+            </div>
           </div>
 
-          {/* Add Liability Form */}
+          {expLiab && (
+            <div className="px-4 pb-4 sm:px-6 sm:pb-6 border-t border-slate-100 dark:border-slate-700 pt-4 sm:pt-6">
+              {/* Add Liability Form */}
           {showAddLiab && (
             <div className="mb-5 rounded-xl border-2 border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 p-4 shadow-md"
               style={{ animation: 'slideDown 0.18s ease-out' }}>
@@ -337,7 +408,7 @@ export default function AccountsAndDebt() {
                   </Field>
                 </div>
                 <div className="col-span-1 sm:col-span-1">
-                  <Field label="First EMI Month">
+                  <Field label="First EMI Month" tooltip={<InfoTooltip title="Auto-Paydown" text="Setting this will enable Auto-Paydown. The system will automatically calculate daily interest and deduct your EMI from the outstanding balance on the 1st of every month." />}>
                     <input type="month" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.firstEmiDate)}`} value={addLiab.firstEmiDate} onChange={e => setAddLiab(p => ({ ...p, firstEmiDate: e.target.value }))} />
                   </Field>
                 </div>
@@ -365,16 +436,8 @@ export default function AccountsAndDebt() {
                 </div>
                 <div className="col-span-1 sm:col-span-1">
                   <Field label="EMI (₹)">
-                    <div className="relative">
-                      <input type="number" placeholder="0" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.emi)} pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} value={addLiab.emi} onChange={e => setAddLiab(p => ({ ...p, emi: e.target.value }))} />
-                      <button 
-                        onClick={() => setAddLiab(p => ({ ...p, emi: autoCalcEmi(p.originalAmount || p.value, p.rate, p.tenure) || p.emi }))}
-                        title="Auto-calculate EMI"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors p-1"
-                      >
-                        <Calculator size={15} />
-                      </button>
-                    </div>
+                    <input type="number" placeholder="0" className={`${inputCls} ${getErrCls(liabFormAttempted, addLiab.emi)}`} value={addLiab.emi} onChange={e => setAddLiab(p => ({ ...p, emi: e.target.value }))} />
+                    {renderEmiSuggestion(addLiab, setAddLiab)}
                   </Field>
                 </div>
               </div>
@@ -401,7 +464,7 @@ export default function AccountsAndDebt() {
               />
             )}
             {state.liabilities.map(l => (
-              <div key={l.id} className="space-y-0">
+              <div key={l.id} id={`liab-${l.id}`} className="space-y-0">
                 {/* Row */}
                 <div className={`flex justify-between items-center px-3 sm:px-4 py-3 rounded-xl border transition-colors ${
                   editingLiabId === l.id
@@ -458,7 +521,7 @@ export default function AccountsAndDebt() {
                         </Field>
                       </div>
                       <div className="col-span-1 sm:col-span-1">
-                        <Field label="First EMI Month">
+                        <Field label="First EMI Month" tooltip={<InfoTooltip title="Auto-Paydown" text="Setting this will enable Auto-Paydown. The system will automatically calculate daily interest and deduct your EMI from the outstanding balance on the 1st of every month." />}>
                           <input type="month" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.firstEmiDate)}`} value={editLiab.firstEmiDate} onChange={e => setEditLiab(p => ({ ...p, firstEmiDate: e.target.value }))} />
                         </Field>
                       </div>
@@ -486,16 +549,8 @@ export default function AccountsAndDebt() {
                       </div>
                       <div className="col-span-1 sm:col-span-1">
                         <Field label="EMI (₹)">
-                          <div className="relative">
-                            <input type="number" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.emi)} pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} value={editLiab.emi} onChange={e => setEditLiab(p => ({ ...p, emi: e.target.value }))} />
-                            <button 
-                              onClick={() => setEditLiab(p => ({ ...p, emi: autoCalcEmi(p.originalAmount || p.value, p.rate, p.tenure) || p.emi }))}
-                              title="Auto-calculate EMI"
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors p-1"
-                            >
-                              <Calculator size={15} />
-                            </button>
-                          </div>
+                          <input type="number" className={`${inputCls} ${getErrCls(editLiabAttempted, editLiab.emi)}`} value={editLiab.emi} onChange={e => setEditLiab(p => ({ ...p, emi: e.target.value }))} />
+                          {renderEmiSuggestion(editLiab, setEditLiab)}
                         </Field>
                       </div>
                     </div>
@@ -515,27 +570,30 @@ export default function AccountsAndDebt() {
               </div>
             ))}
           </div>
+            </div>
+          )}
         </div>
 
         {/* ── Assets Manager ────────────────────────────────── */}
-        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Assets Manager
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors overflow-hidden">
+          <div className="flex items-center justify-between p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" onClick={(e) => { if (e.target.closest('button.ignore-toggle')) return; setExpAssets(!expAssets); }}>
+            <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 sm:gap-2 mr-2">
+              Assets Manager
               <InfoTooltip title="Assets Manager" text="Add everything you own that has financial value — mutual funds, stocks, gold, real estate, FDs, PPF, etc. Enter both the amount you originally invested and the current market value so Wealth For FIRE can track your real returns." />
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               {state.assets.length > 0 && (
                 <button
-                  onClick={openQuickUpdate}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+                  onClick={(e) => { e.stopPropagation(); setExpAssets(true); openQuickUpdate(); }}
+                  className="ignore-toggle hidden sm:flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
                   title="Quickly update all asset values in one place"
                 >
                   ⚡ Quick Update
                 </button>
               )}
               <button
-                onClick={() => { setShowAddAsset(v => !v); setEditingAssetId(null); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                onClick={(e) => { e.stopPropagation(); setExpAssets(true); setShowAddAsset(v => !v); setEditingAssetId(null); }}
+                className={`ignore-toggle flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${
                   showAddAsset
                     ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                     : 'bg-indigo-600 hover:bg-indigo-700 text-white'
@@ -543,10 +601,15 @@ export default function AccountsAndDebt() {
               >
                 {showAddAsset ? <><X size={14} /> Cancel</> : <><Plus size={14} /> Add Asset</>}
               </button>
+              <div className="text-slate-400 dark:text-slate-500 ml-1">
+                {expAssets ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </div>
             </div>
           </div>
 
-          {/* Add Asset Form */}
+          {expAssets && (
+            <div className="px-4 pb-4 sm:px-6 sm:pb-6 border-t border-slate-100 dark:border-slate-700 pt-4 sm:pt-6">
+              {/* Add Asset Form */}
           {showAddAsset && (
             <div className="mb-5 rounded-xl border-2 border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950/40 p-4 shadow-md"
               style={{ animation: 'slideDown 0.18s ease-out' }}>
@@ -779,6 +842,8 @@ export default function AccountsAndDebt() {
               );
             })}
           </div>
+            </div>
+          )}
         </div>
 
       </div>
