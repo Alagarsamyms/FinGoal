@@ -14,9 +14,18 @@ export default function DebtDashboard({ setCurrentView }) {
           <FileWarning size={32} />
         </div>
         <h3 className="text-lg font-medium text-slate-900 dark:text-white">100% Debt Free!</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-sm mx-auto">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 mb-4 max-w-sm mx-auto">
           You currently have no active loans or liabilities.
         </p>
+        <button 
+          onClick={() => { 
+            if (setCurrentView) setCurrentView('accounts'); 
+            window.location.hash = '#add-liab';
+          }}
+          className="px-5 py-2.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 font-semibold text-sm rounded-lg border border-rose-100 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors"
+        >
+          Add Debt in Accounts &amp; Debt
+        </button>
       </div>
     );
   }

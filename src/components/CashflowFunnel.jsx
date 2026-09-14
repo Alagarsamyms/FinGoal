@@ -2,7 +2,7 @@ import React from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { Filter, AlertCircle } from 'lucide-react';
 
-export default function CashflowFunnel() {
+export default function CashflowFunnel({ setCurrentView }) {
   const { state } = useAppState();
 
   const income = parseFloat(state.income) || 0;
@@ -45,7 +45,19 @@ export default function CashflowFunnel() {
 
       <div className="flex-1 flex flex-col justify-center mb-6">
         {income === 0 ? (
-          <div className="text-center text-sm text-slate-400 py-4">No income defined. Add income in Accounts & Debt.</div>
+          <div className="flex flex-col items-center justify-center text-center py-4">
+            <Filter size={32} className="text-slate-300 dark:text-slate-600 mb-2" />
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Cashflow funnel is empty.</p>
+            <button 
+              onClick={() => { 
+                if (setCurrentView) setCurrentView('accounts'); 
+                window.location.hash = '#add-cashflow';
+              }}
+              className="px-5 py-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold text-sm rounded-lg border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+            >
+              Add Income in Accounts &amp; Debt
+            </button>
+          </div>
         ) : (
           <div className="space-y-4">
             

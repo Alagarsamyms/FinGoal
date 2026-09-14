@@ -5,7 +5,7 @@ import { Flame, Target, Rocket, AlertTriangle } from 'lucide-react';
 import { InfoTooltip } from './Onboarding';
 import { calculateFireProjection } from '../utils/calculations';
 
-export default function FireDashboard() {
+export default function FireDashboard({ setCurrentView }) {
   const { state } = useAppState();
   const theme = state.settings?.theme || 'light';
 
@@ -129,10 +129,13 @@ export default function FireDashboard() {
             You need to add your data to unlock this engine.
           </p>
           <button
-            onClick={() => setCurrentView && setCurrentView('accounts')}
+            onClick={() => {
+              if (setCurrentView) setCurrentView('accounts');
+              window.location.hash = '#add-cashflow';
+            }}
             className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20 transition-all transform hover:-translate-y-0.5"
           >
-            Update Accounts & Debt
+            Update Expenses in Cash Flow
           </button>
         </div>
       </div>
