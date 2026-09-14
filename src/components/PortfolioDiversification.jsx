@@ -59,7 +59,7 @@ const CustomTooltip = ({ active, payload, theme }) => {
   return null;
 };
 
-export default function PortfolioDiversification() {
+export default function PortfolioDiversification({ setCurrentView }) {
   const { state } = useAppState();
   const theme = state.settings?.theme || 'light';
 
@@ -100,8 +100,16 @@ export default function PortfolioDiversification() {
     return (
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 sm:p-6 shadow-sm min-h-[300px] flex flex-col items-center justify-center text-center transition-colors">
         <PieChartIcon size={32} className="text-slate-300 dark:text-slate-600 mb-2" />
-        <p className="text-slate-500 dark:text-slate-400 text-sm">No assets to analyze.</p>
-        <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Add assets in Accounts &amp; Debt to see your portfolio.</p>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">No assets to analyze.</p>
+        <button 
+          onClick={() => { 
+            if (setCurrentView) setCurrentView('accounts'); 
+            window.location.hash = '#add-asset';
+          }}
+          className="px-5 py-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-semibold text-sm rounded-lg border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+        >
+          Add Assets in Accounts &amp; Debt
+        </button>
       </div>
     );
   }

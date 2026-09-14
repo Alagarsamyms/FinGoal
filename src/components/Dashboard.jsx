@@ -13,14 +13,14 @@ export default function Dashboard({ setCurrentView }) {
       
       {/* Portfolio & Cashflow Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        <PortfolioDiversification />
-        <CashflowFunnel />
+        <PortfolioDiversification setCurrentView={setCurrentView} />
+        <CashflowFunnel setCurrentView={setCurrentView} />
       </div>
       
       {/* Charts and Overviews */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="lg:col-span-2">
-          <UnlinkedAssetsProjection />
+          <UnlinkedAssetsProjection setCurrentView={setCurrentView} />
         </div>
         <DebtDashboard setCurrentView={setCurrentView} />
         <GoalsOverview setCurrentView={setCurrentView} />

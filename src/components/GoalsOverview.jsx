@@ -13,9 +13,15 @@ export default function GoalsOverview({ setCurrentView }) {
           <Target size={32} />
         </div>
         <h3 className="text-lg font-medium text-slate-900 dark:text-white">No Goals Yet</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-sm mx-auto">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 mb-4 max-w-sm mx-auto">
           Navigate to the Goals Matrix to set your first financial target.
         </p>
+        <button 
+          onClick={() => { if (setCurrentView) setCurrentView('goals'); }}
+          className="px-5 py-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-semibold text-sm rounded-lg border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+        >
+          Add Goal in Goals Matrix
+        </button>
       </div>
     );
   }

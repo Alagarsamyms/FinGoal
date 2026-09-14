@@ -175,6 +175,37 @@ export default function AccountsAndDebt() {
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash;
+      if (!hash) return;
+      
+      if (hash === '#add-cashflow') {
+        setExpCashflow(true);
+        setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        return;
+      }
+      
+      if (hash === '#add-liab') {
+        setExpLiab(true);
+        setShowAddLiab(true);
+        setTimeout(() => {
+          const el = document.getElementById('liab-header');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        return;
+      }
+      
+      if (hash === '#add-asset') {
+        setExpAssets(true);
+        setShowAddAsset(true);
+        setTimeout(() => {
+          const el = document.getElementById('asset-header');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        return;
+      }
+
       if (hash.startsWith('#edit-liab-')) {
         const id = hash.replace('#edit-liab-', '');
         const liab = state.liabilities?.find(l => l.id === id);
@@ -189,10 +220,10 @@ export default function AccountsAndDebt() {
         window.history.replaceState(null, '', window.location.pathname + window.location.search);
       }
     };
-    if (state.liabilities?.length > 0) {
-      handleHash();
-    }
-  }, [state.liabilities]);
+    
+    // Call it immediately and also whenever liabilities change, because the DOM element needs to exist
+    handleHash();
+  }, [state.liabilities, editingLiabId]);
 
   const openQuickUpdate = () => {
     const vals = {};
@@ -325,7 +356,7 @@ export default function AccountsAndDebt() {
       <div className="space-y-4 md:space-y-6">
 
         {/* ── Cash Flow ─────────────────────────────────────── */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors relative overflow-hidden">
+        <div id="cashflow-header" className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors relative overflow-hidden">
           <button 
             onClick={() => setExpCashflow(!expCashflow)} 
             className="w-full flex justify-between items-center p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
@@ -363,7 +394,7 @@ export default function AccountsAndDebt() {
         </div>
 
         {/* ── Liability & Debt Manager ───────────────────────── */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors overflow-hidden">
+        <div id="liab-header" className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors overflow-hidden">
           <div className="flex items-center justify-between p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" onClick={(e) => { if (e.target.closest('button.ignore-toggle')) return; setExpLiab(!expLiab); }}>
             <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 sm:gap-2 mr-2">
               Liability &amp; Debt Manager
@@ -575,7 +606,7 @@ export default function AccountsAndDebt() {
         </div>
 
         {/* ── Assets Manager ────────────────────────────────── */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors overflow-hidden">
+        <div id="asset-header" className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors overflow-hidden">
           <div className="flex items-center justify-between p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" onClick={(e) => { if (e.target.closest('button.ignore-toggle')) return; setExpAssets(!expAssets); }}>
             <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 sm:gap-2 mr-2">
               Assets Manager
