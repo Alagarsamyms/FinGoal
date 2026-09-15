@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Menu } from 'lucide-react';
+import { useConfirm } from './context/ConfirmContext';
 import InstallPrompt from './components/InstallPrompt';
 import { AppStateProvider } from './context/AppStateContext';
 import { AuthProvider } from './context/AuthContext';
@@ -16,27 +17,84 @@ import Settings from './components/Settings';
 import LegalPage from './components/LegalPage';
 import AdminDashboard from './components/AdminDashboard';
 import { initializeGoogleDriveSync } from './utils/gdrive';
+import { modalRegistry } from './utils/modalRegistry';
 import FireEducationModal from './components/FireEducationModal';
 import SetupWizard from './components/SetupWizard';
 
 function App() {
-  const [currentView, setCurrentView] = useState(() => {
-    return window.location.hash === '#legal' ? 'legal' : 'dashboard';
+  const { confirm } = useConfirm();
+  
+  const [_currentView, _setCurrentView] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    return ['dashboard', 'accounts', 'goals', 'fire', 'protection', 'simulation', 'settings', 'legal', 'admin'].includes(hash) ? hash : 'dashboard';
   });
+  const currentView = _currentView;
+
+  const setCurrentView = (view) => {
+    if (view !== _currentView) {
+      window.history.pushState({ view }, '', `#${view}`);
+      _setCurrentView(view);
+      window.scrollTo(0, 0);
+    }
+  };
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [showEduModal, setShowEduModal] = useState(false);
-  const [isWizardActive, setIsWizardActive] = useState(true); // Will be updated by SetupWizard
+  const [isWizardActive, setIsWizardActive] = useState(true);
 
   useEffect(() => {
     initializeGoogleDriveSync();
 
-    const handleHashChange = () => {
-      if (window.location.hash === '#legal') setCurrentView('legal');
+    // Set initial history state so we have a base state
+    window.history.replaceState({ view: _currentView }, '', `#${_currentView}`);
+
+    const handlePopState = async (e) => {
+      // 1. If any modals are open, close the top one and push the current state back
+      if (modalRegistry.hasModals()) {
+        modalRegistry.pop();
+        window.history.pushState({ view: _currentView }, '', `#${_currentView}`);
+        return;
+      }
+
+      // 2. Otherwise navigate normally
+      const stateView = e.state?.view;
+      if (stateView) {
+        _setCurrentView(stateView);
+      } else {
+        // e.state is null. Check if this was a programmatic hash assignment.
+        const hashVal = window.location.hash.replace('#', '');
+        const validViews = ['dashboard', 'accounts', 'goals', 'fire', 'protection', 'simulation', 'settings', 'legal', 'admin'];
+        
+        if (validViews.includes(hashVal)) {
+          _setCurrentView(hashVal);
+          window.history.replaceState({ view: hashVal }, '', `#${hashVal}`);
+          return;
+        }
+
+        if (hashVal === 'add-asset' || hashVal === 'add-liab' || hashVal === 'add-cashflow' || hashVal.startsWith('edit-')) {
+          // Programmatic sub-action. Attach the current view state so future navigations work smoothly.
+          window.history.replaceState({ view: _currentView }, '', `#${hashVal}`);
+          return;
+        }
+
+        // If there's no state (e.g. user pressed back beyond the initial state), we are at the edge
+        // Trap the user and ask for exit confirmation
+        // But to trap, we must immediately push state again to prevent browser from leaving
+        window.history.pushState({ view: 'dashboard' }, '', '#dashboard');
+        _setCurrentView('dashboard');
+        
+        if (await confirm('Are you sure you want to exit the application?', { title: 'Exit App', type: 'danger', confirmText: 'Yes, Exit' })) {
+          // User confirmed exit
+          // Since we pushed state, we need to go back twice (once for the push, once for actual exit)
+          window.history.go(-2);
+        }
+      }
     };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [confirm]);
 
   useEffect(() => {
     // Trigger Education Modal 30 seconds after wizard & auth popups are cleared

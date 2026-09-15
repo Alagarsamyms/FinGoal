@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppState } from '../context/AppStateContext';
+import { useConfirm } from '../context/ConfirmContext';
+
 import { Plus, Trash2, Edit2, CheckCircle2, AlertTriangle, XCircle, Link as LinkIcon, Info, Target } from 'lucide-react';
 import { InfoTooltip, SectionEmptyState } from './Onboarding';
 
@@ -9,6 +11,7 @@ const getErrCls = (attempted, val) => attempted && !val ? '!border-rose-500 !rin
 
 export default function GoalTracker() {
   const { state, addItem, removeItem, updateItem } = useAppState();
+  const { confirm } = useConfirm();
 
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
@@ -438,7 +441,7 @@ export default function GoalTracker() {
             return (
               <div key={g.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 sm:p-5 shadow-sm relative group transition-colors">
                 {/* Edit/Delete buttons */}
-                <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-4 right-4 flex items-center gap-1 transition-opacity">
                   <button
                     onClick={() => handleEditGoal(g)}
                     className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
@@ -447,7 +450,7 @@ export default function GoalTracker() {
                     <Edit2 size={15} />
                   </button>
                   <button
-                    onClick={() => { if (window.confirm(`Delete "${g.name}"?`)) removeItem('goals', g.id); }}
+                    onClick={async () => { if (await confirm(`Are you sure you want to delete "${g.name}"?`)) removeItem('goals', g.id); }}
                     className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
                     title="Delete"
                   >

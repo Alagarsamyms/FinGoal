@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppState } from '../context/AppStateContext';
+import { useConfirm } from '../context/ConfirmContext';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import {
   Bot, Sparkles, Loader2, Send, Trash2, CloudOff, Cloud,
@@ -140,6 +141,7 @@ function ChatBubble({ msg, theme }) {
 
 export default function Simulation() {
   const { state, updateSettings } = useAppState();
+  const { confirm } = useConfirm();
   const theme = state.settings?.theme || 'light';
 
   const aiQueriesCount = state.settings?.aiQueriesCount || 0;
@@ -450,7 +452,7 @@ FORMATTING RULES (strictly follow):
   };
 
   const clearChat = async () => {
-    if (window.confirm('Clear all chat history? This cannot be undone.')) {
+    if (await confirm('Clear all chat history? This cannot be undone.')) {
       localStorage.removeItem(LS_KEY);
       if (isSyncedToDrive()) syncChatToDrive([]);
 

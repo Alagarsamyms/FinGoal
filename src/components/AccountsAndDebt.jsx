@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppState } from '../context/AppStateContext';
+import { useConfirm } from '../context/ConfirmContext';
 import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronUp, Calculator } from 'lucide-react';
 import { InfoTooltip, SectionEmptyState } from './Onboarding';
 import { calculateEmi } from '../utils/calculations';
@@ -125,6 +126,7 @@ const renderEmiSuggestion = (liab, setLiab) => {
 
 export default function AccountsAndDebt() {
   const { state, updateField, addItem, removeItem, updateItem } = useAppState();
+  const { confirm } = useConfirm();
   const assetTypes = state.settings?.assetTypes || ['Mutual Fund', 'Stocks (India)', 'Fixed Deposit', 'Gold', 'Real Estate', 'EPF', 'PPF', 'Recurring Deposit', 'Cash', 'NPS', 'Debt', 'Small Savings Scheme', 'Sovereign Gold Bond', 'ETF', 'Bonds', 'Sukanya Samriddhi', 'Silver', 'US Stocks', 'Stocks (Foreign)', 'REITs', 'ULIP', 'Crypto'];
 
   // ── Accordion States ─────────────────────────────────────────
@@ -526,7 +528,7 @@ export default function AccountsAndDebt() {
                         {editingLiabId === l.id ? <ChevronUp size={15} /> : <Edit2 size={15} />}
                       </button>
                       <button
-                        onClick={() => { if (window.confirm(`Delete "${l.name}"?`)) removeItem('liabilities', l.id); }}
+                        onClick={async () => { if (await confirm(`Delete "${l.name}"?`)) removeItem('liabilities', l.id); }}
                         title="Delete"
                         className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
                       >
@@ -781,7 +783,7 @@ export default function AccountsAndDebt() {
                           {isEditing ? <ChevronUp size={15} /> : <Edit2 size={15} />}
                         </button>
                         <button
-                          onClick={() => { if (window.confirm(`Delete "${a.name}"?`)) removeItem('assets', a.id); }}
+                          onClick={async () => { if (await confirm(`Delete "${a.name}"?`)) removeItem('assets', a.id); }}
                           title="Delete"
                           className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
                         >

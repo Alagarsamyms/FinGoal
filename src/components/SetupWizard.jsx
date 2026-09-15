@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppState } from '../context/AppStateContext';
+import { modalRegistry } from '../utils/modalRegistry';
 import {
   ChevronRight, ChevronLeft, X, Check, Plus, Trash2,
   Wallet, TrendingUp, CreditCard, Target, Sparkles, IndianRupee, Info, Calculator
@@ -494,9 +495,18 @@ export default function SetupWizard({ onComplete, onSkip, onActive }) {
   const [newDebts, setNewDebts] = useState([]);
   const [newGoals, setNewGoals] = useState([]);
 
-  // Report active status upwards
+  // Report active status upwards and register with modalRegistry
   React.useEffect(() => {
-    if (onActive) onActive(!isSetupComplete && !dismissed);
+    const isActive = !isSetupComplete && !dismissed;
+    if (onActive) onActive(isActive);
+    
+    if (isActive) {
+      modalRegistry.push('setup_wizard', handleSkip);
+    } else {
+      modalRegistry.remove('setup_wizard');
+    }
+    
+    return () => modalRegistry.remove('setup_wizard');
   }, [isSetupComplete, dismissed, onActive]);
 
   if (isSetupComplete || dismissed) return null;

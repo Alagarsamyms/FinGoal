@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppState } from '../context/AppStateContext';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import { exportToExcel } from '../utils/exportExcel';
 import { supabase } from '../utils/supabase';
 import { isSyncedToDrive, handleDriveAuthClick, disconnectDrive } from '../utils/gdrive';
@@ -15,6 +16,7 @@ import FireEducationModal from './FireEducationModal';
 export default function Settings({ setCurrentView }) {
   const { state, updateField, addAssetType, removeAssetType, renameAssetType } = useAppState();
   const { user, signOut, isGuest } = useAuth();
+  const { confirm } = useConfirm();
 
   const [newType, setNewType] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -39,8 +41,9 @@ export default function Settings({ setCurrentView }) {
   // Calls the delete-account Edge Function which removes ALL data + auth.users record.
   // This allows the same email to be re-registered immediately.
   const handleDeleteAccount = async () => {
-    const confirmed = window.confirm(
-      '⚠️ DELETE ACCOUNT\n\nThis will permanently delete all your financial data including assets, liabilities, goals, and your account.\n\nYou can re-register with the same email after deletion.\n\nThis action CANNOT be undone. Click OK to confirm.'
+    const confirmed = await confirm(
+      'This will permanently delete all your financial data including assets, liabilities, goals, and your account.\n\nYou can re-register with the same email after deletion.\n\nThis action CANNOT be undone.',
+      { title: '⚠️ DELETE ACCOUNT' }
     );
     if (!confirmed) return;
 
@@ -231,8 +234,8 @@ export default function Settings({ setCurrentView }) {
                         setEditingType(type);
                         setEditingValue(type);
                       }} className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded transition-colors"><Edit2 size={16} /></button>
-                      <button onClick={() => {
-                        if (window.confirm(`Are you sure you want to delete the "${type}" category?`)) {
+                      <button onClick={async () => {
+                        if (await confirm(`Are you sure you want to delete the "${type}" category?`)) {
                           removeAssetType(type);
                         }
                       }} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded transition-colors"><Trash2 size={16} /></button>

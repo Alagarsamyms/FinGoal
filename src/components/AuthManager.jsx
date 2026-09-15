@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { modalRegistry } from '../utils/modalRegistry';
 import AuthModal from './AuthModal';
 
 export default function AuthManager({ showAuth, setShowAuth, isWizardActive }) {
@@ -29,6 +30,15 @@ export default function AuthManager({ showAuth, setShowAuth, isWizardActive }) {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [isGuest, loading, showAuth, promptCount, isWizardActive, setShowAuth]);
+
+  useEffect(() => {
+    if (showAuth) {
+      modalRegistry.push('auth_modal', handleClose);
+    } else {
+      modalRegistry.remove('auth_modal');
+    }
+    return () => modalRegistry.remove('auth_modal');
+  }, [showAuth]);
 
   const handleClose = () => {
     setShowAuth(false);
