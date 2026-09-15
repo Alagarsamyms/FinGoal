@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Menu } from 'lucide-react';
 import { useConfirm } from './context/ConfirmContext';
 import InstallPrompt from './components/InstallPrompt';
@@ -26,14 +26,25 @@ function App() {
   
   const [_currentView, _setCurrentView] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    return ['dashboard', 'accounts', 'goals', 'fire', 'protection', 'simulation', 'settings', 'legal', 'admin'].includes(hash) ? hash : 'dashboard';
+    const validViews = ['dashboard', 'accounts', 'goals', 'fire', 'protection', 'simulation', 'settings', 'legal', 'admin'];
+    if (validViews.includes(hash)) return hash;
+    
+    // Deep linking support for sub-routes
+    if (hash === 'add-asset' || hash === 'add-liab' || hash === 'add-cashflow' || hash.startsWith('edit-liab-')) return 'accounts';
+    if (hash.startsWith('edit-goal-')) return 'goals';
+    
+    return 'dashboard';
   });
   const currentView = _currentView;
+  const currentViewRef = useRef(_currentView);
 
   const setCurrentView = (view) => {
     if (view !== _currentView) {
-      window.history.pushState({ view }, '', `#${view}`);
+      // Use replaceState instead of pushState for native-app style navigation.
+      // This prevents building a massive back-stack of every tab clicked.
+      window.history.replaceState({ view, appInitialized: true }, '', `#${view}`);
       _setCurrentView(view);
+      currentViewRef.current = view;
       window.scrollTo(0, 0);
     }
   };
@@ -46,48 +57,70 @@ function App() {
   useEffect(() => {
     initializeGoogleDriveSync();
 
-    // Set initial history state so we have a base state
-    window.history.replaceState({ view: _currentView }, '', `#${_currentView}`);
+    // ── 1. Create a History Trap at the Root ─────────────────────────────
+    // To prevent the back button from abruptly exiting the app (and to show a confirmation),
+    // we must guarantee a minimum of 2 history entries exist.
+    // We unconditionally inject this on mount so that even after a page reload, 
+    // the history immediately behind the current view is always the trap.
+    const currentHash = window.location.hash.replace('#', '') || 'dashboard';
+    window.history.replaceState({ trap: true, appInitialized: true }, '', '#trap');
+    
+    const isSubAction = ['add-asset', 'add-liab', 'add-cashflow'].includes(currentHash) || currentHash.startsWith('edit-');
+    window.history.pushState({ view: currentViewRef.current, appInitialized: true }, '', isSubAction ? `#${currentHash}` : `#${currentViewRef.current}`);
 
     const handlePopState = async (e) => {
       // 1. If any modals are open, close the top one and push the current state back
       if (modalRegistry.hasModals()) {
         modalRegistry.pop();
-        window.history.pushState({ view: _currentView }, '', `#${_currentView}`);
+        window.history.pushState({ view: currentViewRef.current, appInitialized: true }, '', `#${currentViewRef.current}`);
         return;
       }
 
-      // 2. Otherwise navigate normally
+      // 2. Handle hitting the Root Trap
+      if (e.state?.trap) {
+        if (currentViewRef.current !== 'dashboard') {
+          // Navigated back from a deep link entry. Route to dashboard instead of exiting.
+          _setCurrentView('dashboard');
+          currentViewRef.current = 'dashboard';
+          window.history.pushState({ view: 'dashboard', appInitialized: true }, '', '#dashboard');
+        } else {
+          // On Dashboard, confirm exit
+          window.history.pushState({ view: 'dashboard', appInitialized: true }, '', '#dashboard');
+          if (await confirm('Are you sure you want to exit the application?', { title: 'Exit App', type: 'danger', confirmText: 'Yes, Exit' })) {
+            // Unmount the listener so we don't infinitely re-trap them on the way out
+            window.removeEventListener('popstate', handlePopState);
+            
+            // Attempt to close the PWA natively
+            try {
+              window.close();
+            } catch (e) {}
+            // Fallback: forcefully rewind history to exit the web app
+            window.history.go(-(window.history.length));
+          }
+        }
+        return;
+      }
+
+      // 3. Navigate normally
       const stateView = e.state?.view;
       if (stateView) {
         _setCurrentView(stateView);
+        currentViewRef.current = stateView;
       } else {
-        // e.state is null. Check if this was a programmatic hash assignment.
+        // 4. e.state is null (e.g., manual location.hash assignment)
         const hashVal = window.location.hash.replace('#', '');
         const validViews = ['dashboard', 'accounts', 'goals', 'fire', 'protection', 'simulation', 'settings', 'legal', 'admin'];
         
         if (validViews.includes(hashVal)) {
           _setCurrentView(hashVal);
-          window.history.replaceState({ view: hashVal }, '', `#${hashVal}`);
-          return;
-        }
-
-        if (hashVal === 'add-asset' || hashVal === 'add-liab' || hashVal === 'add-cashflow' || hashVal.startsWith('edit-')) {
-          // Programmatic sub-action. Attach the current view state so future navigations work smoothly.
-          window.history.replaceState({ view: _currentView }, '', `#${hashVal}`);
-          return;
-        }
-
-        // If there's no state (e.g. user pressed back beyond the initial state), we are at the edge
-        // Trap the user and ask for exit confirmation
-        // But to trap, we must immediately push state again to prevent browser from leaving
-        window.history.pushState({ view: 'dashboard' }, '', '#dashboard');
-        _setCurrentView('dashboard');
-        
-        if (await confirm('Are you sure you want to exit the application?', { title: 'Exit App', type: 'danger', confirmText: 'Yes, Exit' })) {
-          // User confirmed exit
-          // Since we pushed state, we need to go back twice (once for the push, once for actual exit)
-          window.history.go(-2);
+          currentViewRef.current = hashVal;
+          window.history.replaceState({ view: hashVal, appInitialized: true }, '', `#${hashVal}`);
+        } else if (['add-asset', 'add-liab', 'add-cashflow'].includes(hashVal) || hashVal.startsWith('edit-')) {
+          window.history.replaceState({ view: currentViewRef.current, appInitialized: true }, '', `#${hashVal}`);
+        } else {
+          _setCurrentView('dashboard');
+          currentViewRef.current = 'dashboard';
+          window.history.replaceState({ view: 'dashboard', appInitialized: true }, '', '#dashboard');
         }
       }
     };
