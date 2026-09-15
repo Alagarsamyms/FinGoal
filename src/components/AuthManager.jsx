@@ -15,9 +15,9 @@ export default function AuthManager({ showAuth, setShowAuth, welcomeDone }) {
 
     if (!showAuth) {
       // Calculate wait time: 
-      // 0 = immediate, 1 = 10m, 2 = 20m, 3 = 30m, etc.
-      const waitMinutes = promptCount === 0 ? 0 : promptCount * 10;
-      const waitTimeMs = waitMinutes * 60 * 1000;
+      // First time = 10 seconds (gives breathing room after Welcome Tour)
+      // Subsequent = 10m, 20m, 30m, etc.
+      const waitTimeMs = promptCount === 0 ? 10000 : promptCount * 10 * 60 * 1000;
 
       timerRef.current = setTimeout(() => {
         setShowAuth(true);

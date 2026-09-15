@@ -483,17 +483,19 @@ FORMATTING RULES (strictly follow):
   };
 
   const handleShare = async () => {
+    const shareData = {
+      title: 'Wealth For FIRE',
+      text: `Take control of your financial future with Wealth For FIRE! 🚀\n\n🎯 What's inside:\n• 🔥 Calculate your exact FIRE number\n• 📉 Destroy Debt by actively tracking it\n• 🥧 Master your Portfolio with smart Asset Allocation\n• 🤖 Get tailored advice from your Personalized AI Advisor\n\nJoin me in building a solid financial command center! 👇`,
+      url: window.location.origin,
+    };
+
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'Wealth For FIRE',
-          text: "I'm using Wealth For FIRE to plan my early retirement and manage my finances. Check it out!",
-          url: 'https://wealthforfire.geevika.com/',
-        });
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
         updateSettings('sharesCount', sharesCount + 1);
       } else {
-        await navigator.clipboard.writeText('https://wealthforfire.geevika.com/');
-        alert('Link copied to clipboard! Share it with a friend.');
+        await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n\n${shareData.url}`);
+        alert('Share text copied to clipboard! Share it with a friend.');
         updateSettings('sharesCount', sharesCount + 1);
       }
     } catch (err) {

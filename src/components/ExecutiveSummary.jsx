@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppState } from '../context/AppStateContext';
-import { Wallet, Receipt, CreditCard, TrendingUp, Landmark, FileWarning, Percent, ShieldAlert, PiggyBank } from 'lucide-react';
+import { Wallet, Receipt, IndianRupee, CreditCard, TrendingUp, Landmark, FileWarning, Percent, ShieldAlert, PiggyBank } from 'lucide-react';
 import { InfoTooltip } from './Onboarding';
 import { calculateNetWorth, calculateFinancialHealth } from '../utils/calculations';
 
@@ -120,7 +120,7 @@ export default function ExecutiveSummary({ setCurrentView }) {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <MetricCard label="Monthly Income" value={hasData ? formatCurrency(totalIncome) : '--'} icon={<Wallet size={20} />} color="text-emerald-600" />
-        <MetricCard label="Monthly Expenses" value={hasData ? formatCurrency(totalExpenses) : '--'} icon={<Receipt size={20} />} color="text-rose-500" />
+        <MetricCard label="Monthly Expenses" value={hasData ? formatCurrency(totalExpenses) : '--'} icon={<IndianRupee size={20} />} color="text-rose-500" />
         <MetricCard label="Total EMI" value={hasData ? formatCurrency(totalEmi) : '--'} icon={<CreditCard size={20} />} color="text-amber-600" />
         
         <MetricCard label="Total Assets" value={hasData ? formatCurrency(totalAssets) : '--'} icon={<Landmark size={18} />} color="text-slate-900 dark:text-white" />

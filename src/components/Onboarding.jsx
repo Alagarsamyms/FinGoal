@@ -32,7 +32,10 @@ export function InfoTooltip({ text, title }) {
   return (
     <span ref={ref} className="relative inline-flex items-center ml-1.5">
       <button
-        onClick={() => setOpen(v => !v)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(v => !v);
+        }}
         aria-label="More information"
         type="button"
         className="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors focus:outline-none p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
