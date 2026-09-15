@@ -65,9 +65,17 @@ export default function InstallPrompt() {
     setMode('install');
     timerRef.current = setTimeout(() => setVisible(true), INITIAL_DELAY_MS);
 
+    // Allow external triggers (like the Sidebar Install button) to force the prompt to appear
+    const onExternalTrigger = () => {
+      setMode(localStorage.getItem(KEY_INSTALLED) === '1' ? 'openapp' : 'install');
+      setVisible(true);
+    };
+    window.addEventListener('trigger-install-prompt', onExternalTrigger);
+
     return () => {
       window.removeEventListener('beforeinstallprompt', onPrompt);
       window.removeEventListener('appinstalled', onInstalled);
+      window.removeEventListener('trigger-install-prompt', onExternalTrigger);
       clearTimeout(timerRef.current);
     };
   }, []);

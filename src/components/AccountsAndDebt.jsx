@@ -356,10 +356,10 @@ export default function AccountsAndDebt() {
       <div className="space-y-4 md:space-y-6">
 
         {/* ── Cash Flow ─────────────────────────────────────── */}
-        <div id="cashflow-header" className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors relative overflow-hidden">
+        <div id="cashflow-header" className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors relative">
           <button 
             onClick={() => setExpCashflow(!expCashflow)} 
-            className="w-full flex justify-between items-center p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+            className={`w-full flex justify-between items-center p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors rounded-t-xl ${!expCashflow ? 'rounded-b-xl' : ''}`}
           >
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
               Cash Flow
@@ -394,8 +394,8 @@ export default function AccountsAndDebt() {
         </div>
 
         {/* ── Liability & Debt Manager ───────────────────────── */}
-        <div id="liab-header" className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors overflow-hidden">
-          <div className="flex items-center justify-between p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" onClick={(e) => { if (e.target.closest('button.ignore-toggle')) return; setExpLiab(!expLiab); }}>
+        <div id="liab-header" className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+          <div className={`flex items-center justify-between p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer rounded-t-xl ${!expLiab ? 'rounded-b-xl' : ''}`} onClick={(e) => { if (e.target.closest('button.ignore-toggle')) return; setExpLiab(!expLiab); }}>
             <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 sm:gap-2 mr-2">
               Liability &amp; Debt Manager
               <InfoTooltip title="Debt Manager" text="Add all your outstanding loans here — home loan, car loan, personal loan, credit card dues, etc. Enter the outstanding principal, monthly EMI, and interest rate. Wealth For FIRE will rank them by interest rate to show you what to pay off first." />
@@ -606,8 +606,8 @@ export default function AccountsAndDebt() {
         </div>
 
         {/* ── Assets Manager ────────────────────────────────── */}
-        <div id="asset-header" className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors overflow-hidden">
-          <div className="flex items-center justify-between p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" onClick={(e) => { if (e.target.closest('button.ignore-toggle')) return; setExpAssets(!expAssets); }}>
+        <div id="asset-header" className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+          <div className={`flex items-center justify-between p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer rounded-t-xl ${!expAssets ? 'rounded-b-xl' : ''}`} onClick={(e) => { if (e.target.closest('button.ignore-toggle')) return; setExpAssets(!expAssets); }}>
             <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 sm:gap-2 mr-2">
               Assets Manager
               <InfoTooltip title="Assets Manager" text="Add everything you own that has financial value — mutual funds, stocks, gold, real estate, FDs, PPF, etc. Enter both the amount you originally invested and the current market value so Wealth For FIRE can track your real returns." />

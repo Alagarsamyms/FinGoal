@@ -258,56 +258,7 @@ export default function Settings({ setCurrentView }) {
             </p>
 
             <div className="space-y-4">
-              {/* Google Drive Status (Only for Google Users) */}
-              {user?.app_metadata?.provider === 'google' && (
-                <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                      <Database size={16} /> Google Drive Backup
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                      {gdriveConnected
-                        ? "Your data is automatically backed up to Drive on every change."
-                        : "Connect your Google Drive to enable continuous cloud backups."}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 gap-2 w-full sm:w-auto">
-                    {gdriveConnected ? (
-                      <>
-                        <button
-                          onClick={async () => {
-                            if (window.confirm("⚠️ OVERWRITE WARNING\n\nThis will completely overwrite your current data with the last backup from Google Drive. Are you sure?")) {
-                              setRestoring(true);
-                              const success = await useAppState().restoreFromBackup();
-                              setRestoring(false);
-                              if (success) alert("Successfully restored backup from Google Drive.");
-                              else alert("Failed to restore backup.");
-                            }
-                          }}
-                          disabled={restoring}
-                          className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-800 dark:text-white disabled:opacity-50 rounded-lg font-medium text-sm transition-colors"
-                        >
-                          {restoring ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                          Restore
-                        </button>
-                        <button
-                          onClick={disconnectDrive}
-                          className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg font-medium text-sm transition-colors"
-                        >
-                          Disconnect
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={handleDriveAuthClick}
-                        className="w-full sm:w-auto flex justify-center items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors"
-                      >
-                        Connect Drive
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* Google Drive feature removed as discussed */}
 
               {/* Excel Export */}
               <button

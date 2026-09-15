@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PieChart, Activity, Wallet, Target, Flame, Settings, ShieldCheck, Sparkles, X, Sun, Moon, LogIn, LogOut, User, FileText, Share2 } from 'lucide-react';
+import { PieChart, Activity, Wallet, Target, Flame, Settings, ShieldCheck, Sparkles, X, Sun, Moon, LogIn, LogOut, User, FileText, Share2, Download } from 'lucide-react';
 import { useAppState } from '../context/AppStateContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,6 +7,10 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
   const { state, updateField } = useAppState();
   const { user, isGuest, signOut } = useAuth();
   const theme = state.settings?.theme || 'light';
+  
+  const [isStandalone, setIsStandalone] = useState(
+    window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+  );
 
   const toggleTheme = () => {
     updateField('settings', { ...state.settings, theme: theme === 'light' ? 'dark' : 'light' });
@@ -95,14 +99,26 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
 
-          {/* Share Button */}
-          <button
-            onClick={handleShare}
-            className="w-full flex items-center justify-between px-4 py-2 rounded-lg text-sm font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors border border-emerald-200 dark:border-emerald-800"
-          >
-            <span>Share App</span>
-            <Share2 size={16} />
-          </button>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 w-full">
+            {!isStandalone && (
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new Event('trigger-install-prompt'));
+                  if (setIsMobileOpen) setIsMobileOpen(false);
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors border border-indigo-200 dark:border-indigo-800"
+              >
+                <Download size={14} /> Install
+              </button>
+            )}
+            <button
+              onClick={handleShare}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors border border-emerald-200 dark:border-emerald-800"
+            >
+              <Share2 size={14} /> Share
+            </button>
+          </div>
 
           {/* Storage sync status */}
           {!isGuest ? (
