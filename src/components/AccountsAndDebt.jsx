@@ -881,7 +881,7 @@ export default function AccountsAndDebt() {
 
       {/* ── Quick Update All Values Drawer ────────────────── */}
       {showQuickUpdate && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowQuickUpdate(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowQuickUpdate(false)}>
           <div
             className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
             style={{ animation: 'slideDown 0.2s ease-out' }}

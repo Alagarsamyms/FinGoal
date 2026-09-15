@@ -16,8 +16,8 @@ import Settings from './components/Settings';
 import LegalPage from './components/LegalPage';
 import AdminDashboard from './components/AdminDashboard';
 import { initializeGoogleDriveSync } from './utils/gdrive';
-import { WelcomeBanner } from './components/Onboarding';
 import FireEducationModal from './components/FireEducationModal';
+import SetupWizard from './components/SetupWizard';
 
 function App() {
   const [currentView, setCurrentView] = useState(() => {
@@ -25,8 +25,8 @@ function App() {
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
-  const [welcomeDone, setWelcomeDone] = useState(() => !!localStorage.getItem('fingoal_welcome_dismissed_v1'));
   const [showEduModal, setShowEduModal] = useState(false);
+  const [isWizardActive, setIsWizardActive] = useState(true); // Will be updated by SetupWizard
 
   useEffect(() => {
     initializeGoogleDriveSync();
@@ -39,12 +39,12 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Trigger Education Modal 30 seconds after welcome & auth popups are cleared
-    if (!localStorage.getItem('hasSeenFireEdu') && welcomeDone && !showAuth) {
+    // Trigger Education Modal 30 seconds after wizard & auth popups are cleared
+    if (!localStorage.getItem('hasSeenFireEdu') && !isWizardActive && !showAuth) {
       const timer = setTimeout(() => setShowEduModal(true), 30000);
       return () => clearTimeout(timer);
     }
-  }, [welcomeDone, showAuth]);
+  }, [isWizardActive, showAuth]);
 
   const renderView = () => {
     switch (currentView) {
@@ -65,13 +65,17 @@ function App() {
     <AuthProvider>
       <AppStateProvider>
         <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
-          <AuthManager showAuth={showAuth} setShowAuth={setShowAuth} welcomeDone={welcomeDone} />
+          <AuthManager showAuth={showAuth} setShowAuth={setShowAuth} isWizardActive={isWizardActive} />
 
-          {/* Layer 1: First-visit Welcome Banner */}
-          <WelcomeBanner onNavigate={(view) => setCurrentView(view)} onComplete={() => setWelcomeDone(true)} />
+          {/* Layer 0: First-visit Guided Setup Wizard (new users only) */}
+          <SetupWizard
+            onComplete={(view) => { if (view) setCurrentView(view); setIsWizardActive(false); }}
+            onSkip={() => { setIsWizardActive(false); }}
+            onActive={(active) => setIsWizardActive(active)}
+          />
 
-          {/* Layer 2: PWA Install Prompt */}
-          <InstallPrompt />
+          {/* Layer 1: PWA Install Prompt (Delays showing if Wizard or Auth is active) */}
+          <InstallPrompt isWizardActive={isWizardActive} isAuthActive={showAuth} />
 
           {/* Mobile Header */}
           <div className="md:hidden fixed top-0 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 px-4 py-3 flex items-center justify-start gap-3 shadow-sm">
