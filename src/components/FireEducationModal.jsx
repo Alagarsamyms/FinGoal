@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Flame, Target, Database, Bot } from 'lucide-react';
 import { useAppState } from '../context/AppStateContext';
+import { modalRegistry } from '../utils/modalRegistry';
 
 const translations = {
   en: {
@@ -120,12 +121,17 @@ export default function FireEducationModal({ isOpen, onClose }) {
     if (isOpen) {
       setShow(true);
       document.body.style.overflow = 'hidden';
+      modalRegistry.push('fire_edu', onClose);
     } else {
       setTimeout(() => setShow(false), 300);
       document.body.style.overflow = 'unset';
+      modalRegistry.remove('fire_edu');
     }
-    return () => { document.body.style.overflow = 'unset'; };
-  }, [isOpen]);
+    return () => { 
+      document.body.style.overflow = 'unset'; 
+      modalRegistry.remove('fire_edu');
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen && !show) return null;
 

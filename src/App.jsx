@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Menu } from 'lucide-react';
+import { useConfirm } from './context/ConfirmContext';
 import InstallPrompt from './components/InstallPrompt';
 import { AppStateProvider } from './context/AppStateContext';
 import { AuthProvider } from './context/AuthContext';
@@ -16,27 +17,117 @@ import Settings from './components/Settings';
 import LegalPage from './components/LegalPage';
 import AdminDashboard from './components/AdminDashboard';
 import { initializeGoogleDriveSync } from './utils/gdrive';
+import { modalRegistry } from './utils/modalRegistry';
 import FireEducationModal from './components/FireEducationModal';
 import SetupWizard from './components/SetupWizard';
 
 function App() {
-  const [currentView, setCurrentView] = useState(() => {
-    return window.location.hash === '#legal' ? 'legal' : 'dashboard';
+  const { confirm } = useConfirm();
+  
+  const [_currentView, _setCurrentView] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    const validViews = ['dashboard', 'accounts', 'goals', 'fire', 'protection', 'simulation', 'settings', 'legal', 'admin'];
+    if (validViews.includes(hash)) return hash;
+    
+    // Deep linking support for sub-routes
+    if (hash === 'add-asset' || hash === 'add-liab' || hash === 'add-cashflow' || hash.startsWith('edit-liab-')) return 'accounts';
+    if (hash.startsWith('edit-goal-')) return 'goals';
+    
+    return 'dashboard';
   });
+  const currentView = _currentView;
+  const currentViewRef = useRef(_currentView);
+
+  const setCurrentView = (view) => {
+    if (view !== _currentView) {
+      // Use replaceState instead of pushState for native-app style navigation.
+      // This prevents building a massive back-stack of every tab clicked.
+      window.history.replaceState({ view, appInitialized: true }, '', `#${view}`);
+      _setCurrentView(view);
+      currentViewRef.current = view;
+      window.scrollTo(0, 0);
+    }
+  };
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [showEduModal, setShowEduModal] = useState(false);
-  const [isWizardActive, setIsWizardActive] = useState(true); // Will be updated by SetupWizard
+  const [isWizardActive, setIsWizardActive] = useState(true);
 
   useEffect(() => {
     initializeGoogleDriveSync();
 
-    const handleHashChange = () => {
-      if (window.location.hash === '#legal') setCurrentView('legal');
+    // ── 1. Create a History Trap at the Root ─────────────────────────────
+    // To prevent the back button from abruptly exiting the app (and to show a confirmation),
+    // we must guarantee a minimum of 2 history entries exist.
+    // We unconditionally inject this on mount so that even after a page reload, 
+    // the history immediately behind the current view is always the trap.
+    const currentHash = window.location.hash.replace('#', '') || 'dashboard';
+    window.history.replaceState({ trap: true, appInitialized: true }, '', '#trap');
+    
+    const isSubAction = ['add-asset', 'add-liab', 'add-cashflow'].includes(currentHash) || currentHash.startsWith('edit-');
+    window.history.pushState({ view: currentViewRef.current, appInitialized: true }, '', isSubAction ? `#${currentHash}` : `#${currentViewRef.current}`);
+
+    const handlePopState = async (e) => {
+      // 1. If any modals are open, close the top one and push the current state back
+      if (modalRegistry.hasModals()) {
+        modalRegistry.pop();
+        window.history.pushState({ view: currentViewRef.current, appInitialized: true }, '', `#${currentViewRef.current}`);
+        return;
+      }
+
+      // 2. Handle hitting the Root Trap
+      if (e.state?.trap) {
+        if (currentViewRef.current !== 'dashboard') {
+          // Navigated back from a deep link entry. Route to dashboard instead of exiting.
+          _setCurrentView('dashboard');
+          currentViewRef.current = 'dashboard';
+          window.history.pushState({ view: 'dashboard', appInitialized: true }, '', '#dashboard');
+        } else {
+          // On Dashboard, confirm exit
+          window.history.pushState({ view: 'dashboard', appInitialized: true }, '', '#dashboard');
+          if (await confirm('Are you sure you want to exit the application?', { title: 'Exit App', type: 'danger', confirmText: 'Yes, Exit' })) {
+            // Unmount the listener so we don't infinitely re-trap them on the way out
+            window.removeEventListener('popstate', handlePopState);
+            
+            // Attempt to close the PWA natively
+            try {
+              window.close();
+            } catch (e) {}
+            // Fallback: forcefully rewind history to exit the web app
+            window.history.go(-(window.history.length));
+          }
+        }
+        return;
+      }
+
+      // 3. Navigate normally
+      const stateView = e.state?.view;
+      if (stateView) {
+        _setCurrentView(stateView);
+        currentViewRef.current = stateView;
+      } else {
+        // 4. e.state is null (e.g., manual location.hash assignment)
+        const hashVal = window.location.hash.replace('#', '');
+        const validViews = ['dashboard', 'accounts', 'goals', 'fire', 'protection', 'simulation', 'settings', 'legal', 'admin'];
+        
+        if (validViews.includes(hashVal)) {
+          _setCurrentView(hashVal);
+          currentViewRef.current = hashVal;
+          window.history.replaceState({ view: hashVal, appInitialized: true }, '', `#${hashVal}`);
+        } else if (['add-asset', 'add-liab', 'add-cashflow'].includes(hashVal) || hashVal.startsWith('edit-')) {
+          window.history.replaceState({ view: currentViewRef.current, appInitialized: true }, '', `#${hashVal}`);
+        } else {
+          _setCurrentView('dashboard');
+          currentViewRef.current = 'dashboard';
+          window.history.replaceState({ view: 'dashboard', appInitialized: true }, '', '#dashboard');
+        }
+      }
     };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [confirm]);
 
   useEffect(() => {
     // Trigger Education Modal 30 seconds after wizard & auth popups are cleared
