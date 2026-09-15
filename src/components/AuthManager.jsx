@@ -2,13 +2,14 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './AuthModal';
 
-export default function AuthManager({ showAuth, setShowAuth, welcomeDone }) {
+export default function AuthManager({ showAuth, setShowAuth, isWizardActive }) {
   const { isGuest, loading } = useAuth();
   const [promptCount, setPromptCount] = useState(0);
   const timerRef = useRef(null);
 
   useEffect(() => {
-    if (loading || !isGuest || !welcomeDone) {
+    // If loading, not a guest, or the wizard is currently active, pause the auth prompt timer.
+    if (loading || !isGuest || isWizardActive) {
       if (timerRef.current) clearTimeout(timerRef.current);
       return;
     }
@@ -27,7 +28,7 @@ export default function AuthManager({ showAuth, setShowAuth, welcomeDone }) {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isGuest, loading, showAuth, promptCount, welcomeDone, setShowAuth]);
+  }, [isGuest, loading, showAuth, promptCount, isWizardActive, setShowAuth]);
 
   const handleClose = () => {
     setShowAuth(false);

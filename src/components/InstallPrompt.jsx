@@ -18,7 +18,7 @@ const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 const isMobileOrTablet = () => window.innerWidth < 1024;
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function InstallPrompt() {
+export default function InstallPrompt({ isWizardActive, isAuthActive }) {
   // 'install'  – user is in browser, app NOT yet installed → nudge to install
   // 'openapp'  – user is in browser, app IS installed      → nudge to open app
   // null       – show nothing
@@ -26,6 +26,7 @@ export default function InstallPrompt() {
   const [deferredPrompt, setDeferred] = useState(null);
   const [visible, setVisible]         = useState(false);
   const timerRef                      = useRef(null);
+  const autoDismissTimerRef           = useRef(null);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Determine what to show once per load
@@ -33,20 +34,6 @@ export default function InstallPrompt() {
   useEffect(() => {
     // Already running as installed app → nothing to show
     if (isRunningStandalone()) return;
-
-    const wasInstalled = localStorage.getItem(KEY_INSTALLED) === '1';
-
-    if (wasInstalled) {
-      // App is installed but user opened the browser version → nag them
-      setMode('openapp');
-      timerRef.current = setTimeout(() => setVisible(true), INITIAL_DELAY_MS);
-      return;
-    }
-
-    // ── Not installed yet: check dismiss cooldown ──────────────────────────
-    const dismissedAt  = parseInt(localStorage.getItem(KEY_DISMISSED_AT) || '0', 10);
-    const cooldownOver = Date.now() - dismissedAt > DISMISS_COOLDOWN;
-    if (!cooldownOver && dismissedAt !== 0) return;
 
     // Capture browser's native install event
     const onPrompt = (e) => {
@@ -62,9 +49,6 @@ export default function InstallPrompt() {
     };
     window.addEventListener('appinstalled', onInstalled);
 
-    setMode('install');
-    timerRef.current = setTimeout(() => setVisible(true), INITIAL_DELAY_MS);
-
     // Allow external triggers (like the Sidebar Install button) to force the prompt to appear
     const onExternalTrigger = () => {
       setMode(localStorage.getItem(KEY_INSTALLED) === '1' ? 'openapp' : 'install');
@@ -72,13 +56,59 @@ export default function InstallPrompt() {
     };
     window.addEventListener('trigger-install-prompt', onExternalTrigger);
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Timing logic (Coordinated with SetupWizard and AuthModal)
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    // If the wizard or auth prompt is active, we completely halt the display of the prompt
+    if (isWizardActive || isAuthActive) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setVisible(false);
+      return;
+    }
+
+    const checkAndShow = () => {
+      // Cooldown check
+      const lastDismissed = parseInt(localStorage.getItem(KEY_DISMISSED_AT) || '0', 10);
+      const installed = localStorage.getItem(KEY_INSTALLED) === '1';
+
+      if (Date.now() - lastDismissed < DISMISS_COOLDOWN) return;
+
+      if (installed) {
+        if (!isRunningStandalone()) {
+          setMode('openapp');
+          setVisible(true);
+        }
+      } else {
+        setMode('install');
+        setVisible(true);
+      }
+    };
+
+    // When the wizard and auth finishes or is skipped, we wait 15 seconds before popping this
+    timerRef.current = setTimeout(checkAndShow, 15000);
+
     return () => {
       window.removeEventListener('beforeinstallprompt', onPrompt);
       window.removeEventListener('appinstalled', onInstalled);
       window.removeEventListener('trigger-install-prompt', onExternalTrigger);
-      clearTimeout(timerRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, []);
+  }, [isWizardActive, isAuthActive]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Auto-dismiss after 8 seconds of visibility
+  // ─────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (visible) {
+      autoDismissTimerRef.current = setTimeout(() => {
+        dismiss(); // Auto-dismiss if not interacted with
+      }, 8000);
+    }
+    return () => {
+      if (autoDismissTimerRef.current) clearTimeout(autoDismissTimerRef.current);
+    };
+  }, [visible]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Actions
@@ -118,11 +148,8 @@ export default function InstallPrompt() {
   if (mode === 'openapp') {
     return (
       <>
-        <div
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[9998] md:hidden"
-          onClick={dismiss}
-        />
-        <div className="fixed z-[9999] bottom-4 left-3 right-3 md:bottom-6 md:right-6 md:left-auto md:w-80 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700 rounded-2xl shadow-2xl shadow-emerald-200/40 dark:shadow-emerald-900/40 p-4 flex items-start gap-3 animate-slide-up">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]" onClick={dismiss} />
+        <div className="fixed z-[9999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm md:bottom-6 md:right-6 md:top-auto md:left-auto md:translate-x-0 md:translate-y-0 md:w-80 bg-white dark:bg-slate-800 border border-emerald-100 dark:border-emerald-700/30 rounded-2xl shadow-2xl shadow-emerald-200/40 dark:shadow-emerald-900/40 p-4 flex items-start gap-3 animate-slide-up">
           <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
             <img src="/logo.png" alt="App icon" className="w-8 h-8 object-contain" />
           </div>
@@ -161,12 +188,9 @@ export default function InstallPrompt() {
   return (
     <>
       {/* Backdrop for mobile */}
-      <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998] md:hidden"
-        onClick={dismiss}
-      />
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998] md:hidden" onClick={dismiss} />
 
-      <div className="fixed z-[9999] bottom-4 left-3 right-3 md:bottom-6 md:right-6 md:left-auto md:w-80 bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-700 rounded-2xl shadow-2xl shadow-indigo-200/40 dark:shadow-indigo-900/40 p-4 flex items-start gap-3 animate-slide-up">
+      <div className="fixed z-[9999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm md:bottom-6 md:right-6 md:top-auto md:left-auto md:translate-x-0 md:translate-y-0 md:w-80 bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-700 rounded-2xl shadow-2xl shadow-indigo-200/40 dark:shadow-indigo-900/40 p-4 flex items-start gap-3 animate-slide-up">
         {/* Logo */}
         <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
           <img src="/logo.png" alt="App icon" className="w-8 h-8 object-contain" />
