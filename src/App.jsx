@@ -37,14 +37,23 @@ function App() {
   });
   const currentView = _currentView;
   const currentViewRef = useRef(_currentView);
+  // Tracks whether we are on the sentinel (dashboard-level) history entry.
+  // When true, back = exit prompt. When false, back = go to dashboard sentinel.
+  const onSentinelRef = useRef(false);
+  const confirmRef = useRef(confirm);
+  confirmRef.current = confirm;
 
   const setCurrentView = (view) => {
-    if (view !== _currentView) {
-      // Use replaceState instead of pushState for native-app style navigation.
-      // This prevents building a massive back-stack of every tab clicked.
-      window.history.replaceState({ view, appInitialized: true }, '', `#${view}`);
+    if (view !== currentViewRef.current) {
+      // replaceState keeps the stack size constant. The stack is always:
+      // [#trap] → [#sentinel] where sentinel is the current view.
+      window.history.replaceState({ view, sentinel: true }, '', `#${view}`);
       _setCurrentView(view);
       currentViewRef.current = view;
+      // When user explicitly navigates to dashboard via menu, they are on the sentinel.
+      // When they navigate to any other view, they are NOT on the sentinel — 
+      // pressing back should bring them to dashboard first.
+      onSentinelRef.current = (view === 'dashboard');
       window.scrollTo(0, 0);
     }
   };
@@ -57,77 +66,88 @@ function App() {
   useEffect(() => {
     initializeGoogleDriveSync();
 
-    // ── 1. Create a History Trap at the Root ─────────────────────────────
-    // To prevent the back button from abruptly exiting the app (and to show a confirmation),
-    // we must guarantee a minimum of 2 history entries exist.
-    // We unconditionally inject this on mount so that even after a page reload, 
-    // the history immediately behind the current view is always the trap.
-    const currentHash = window.location.hash.replace('#', '') || 'dashboard';
-    window.history.replaceState({ trap: true, appInitialized: true }, '', '#trap');
-    
-    const isSubAction = ['add-asset', 'add-liab', 'add-cashflow'].includes(currentHash) || currentHash.startsWith('edit-');
-    window.history.pushState({ view: currentViewRef.current, appInitialized: true }, '', isSubAction ? `#${currentHash}` : `#${currentViewRef.current}`);
+    // ── History Trap Setup ──────────────────────────────────────────────────
+    // Stack layout we want:   [#trap]  →  [current-view (sentinel)]
+    //
+    // #trap is a silent sentinel at the very bottom. We NEVER navigate to it
+    // intentionally. Detecting it in popstate means the user pressed back past
+    // the sentinel and we should show the exit confirmation.
+    //
+    // We always inject this fresh on mount so that reloads don't break the stack.
+    window.history.replaceState({ trap: true }, '', '#trap');
+    window.history.pushState({ view: currentViewRef.current, sentinel: true }, '', `#${currentViewRef.current}`);
+
+    // On initial load, if the user is on the dashboard, they're on the sentinel.
+    onSentinelRef.current = (currentViewRef.current === 'dashboard');
 
     const handlePopState = async (e) => {
-      // 1. If any modals are open, close the top one and push the current state back
+      console.log('[FinGoal Navigation] handlePopState triggered:', {
+        url: window.location.href,
+        hash: window.location.hash,
+        state: e.state,
+        currentView: currentViewRef.current,
+        onSentinel: onSentinelRef.current,
+        hasModals: modalRegistry.hasModals(),
+      });
+
+      // A. Modals open → close the top modal, stay on current page.
       if (modalRegistry.hasModals()) {
+        console.log('[FinGoal Navigation] Closing modal from registry');
         modalRegistry.pop();
-        window.history.pushState({ view: currentViewRef.current, appInitialized: true }, '', `#${currentViewRef.current}`);
+        window.history.pushState({ view: currentViewRef.current, sentinel: true }, '', `#${currentViewRef.current}`);
         return;
       }
 
-      // 2. Handle hitting the Root Trap
-      if (e.state?.trap) {
-        if (currentViewRef.current !== 'dashboard') {
-          // Navigated back from a deep link entry. Route to dashboard instead of exiting.
+      // B. Hit the trap (bottom of stack) or hash is #trap or empty.
+      const isTrap = e.state?.trap || window.location.hash === '#trap' || !window.location.hash;
+      console.log('[FinGoal Navigation] isTrap:', isTrap);
+
+      if (isTrap) {
+        if (!onSentinelRef.current || currentViewRef.current !== 'dashboard') {
+          console.log('[FinGoal Navigation] Not on dashboard sentinel, redirecting to dashboard');
           _setCurrentView('dashboard');
           currentViewRef.current = 'dashboard';
-          window.history.pushState({ view: 'dashboard', appInitialized: true }, '', '#dashboard');
+          onSentinelRef.current = true;
+          window.history.replaceState({ trap: true }, '', '#trap');
+          window.history.pushState({ view: 'dashboard', sentinel: true }, '', '#dashboard');
         } else {
-          // On Dashboard, confirm exit
-          window.history.pushState({ view: 'dashboard', appInitialized: true }, '', '#dashboard');
-          if (await confirm('Are you sure you want to exit the application?', { title: 'Exit App', type: 'danger', confirmText: 'Yes, Exit' })) {
-            // Unmount the listener so we don't infinitely re-trap them on the way out
-            window.removeEventListener('popstate', handlePopState);
-            
-            // Attempt to close the PWA natively
-            try {
-              window.close();
-            } catch (e) {}
-            // Fallback: forcefully rewind history to exit the web app
-            window.history.go(-(window.history.length));
+          console.log('[FinGoal Navigation] On Dashboard! Triggering exit confirmation modal...');
+          window.history.pushState({ view: 'dashboard', sentinel: true }, '', '#dashboard');
+
+          try {
+            const shouldExit = await confirmRef.current(
+              'Are you sure you want to exit the application?',
+              { title: 'Exit App', type: 'danger', confirmText: 'Yes, Exit' }
+            );
+            console.log('[FinGoal Navigation] User response to exit confirmation:', shouldExit);
+
+            if (shouldExit) {
+              window.removeEventListener('popstate', handlePopState);
+              try { window.close(); } catch (_) {}
+              window.history.go(-window.history.length);
+            }
+          } catch (err) {
+            console.error('[FinGoal Navigation] Error during exit confirmation:', err);
           }
         }
         return;
       }
 
-      // 3. Navigate normally
-      const stateView = e.state?.view;
-      if (stateView) {
-        _setCurrentView(stateView);
-        currentViewRef.current = stateView;
-      } else {
-        // 4. e.state is null (e.g., manual location.hash assignment)
-        const hashVal = window.location.hash.replace('#', '');
-        const validViews = ['dashboard', 'accounts', 'goals', 'fire', 'protection', 'simulation', 'settings', 'legal', 'admin'];
-        
-        if (validViews.includes(hashVal)) {
-          _setCurrentView(hashVal);
-          currentViewRef.current = hashVal;
-          window.history.replaceState({ view: hashVal, appInitialized: true }, '', `#${hashVal}`);
-        } else if (['add-asset', 'add-liab', 'add-cashflow'].includes(hashVal) || hashVal.startsWith('edit-')) {
-          window.history.replaceState({ view: currentViewRef.current, appInitialized: true }, '', `#${hashVal}`);
-        } else {
-          _setCurrentView('dashboard');
-          currentViewRef.current = 'dashboard';
-          window.history.replaceState({ view: 'dashboard', appInitialized: true }, '', '#dashboard');
+      // C. Normal sentinel pop
+      if (e.state?.sentinel) {
+        const view = e.state.view;
+        console.log('[FinGoal Navigation] Sentinel pop to view:', view);
+        if (view) {
+          _setCurrentView(view);
+          currentViewRef.current = view;
+          onSentinelRef.current = (view === 'dashboard');
         }
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [confirm]);
+  }, []);
 
   useEffect(() => {
     // Trigger Education Modal 30 seconds after wizard & auth popups are cleared
